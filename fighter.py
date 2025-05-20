@@ -16,6 +16,8 @@ class ActionState(Enum):
     ATTACKING1 = 7
     ATTACKING2 = 8
     ATTACKING3 = 9
+    CHARGESHOOT = 10
+    SHOOT = 11
 
 class Direction(Enum):
     NORTH = 0
@@ -66,7 +68,7 @@ class AABB:
             (selfMinY <= otherMaxY and
             selfMaxY >= otherMinY)
             and
-            (abs(selfMaxY-otherMaxY) <= self.PSEUDOZ_OVERLAP_MARGIN) 
+            (abs(self.pseudoZ-other.pseudoZ) <= self.PSEUDOZ_OVERLAP_MARGIN) 
         )
 
 class Fighter:
@@ -165,9 +167,15 @@ class Fighter:
             return
 
         if(self.isRunning):
-            self.currentAnimationID = self.DEFAULT_LRUNANIM_ID if -1==direction else self.DEFAULT_RRUNANIM_ID
+            if -1==direction:
+                self.currentAnimationID = self.DEFAULT_LRUNANIM_ID 
+            elif 1==direction:
+                self.DEFAULT_RRUNANIM_ID
         else:
-            self.currentAnimationID = self.DEFAULT_LWALKANIM_ID if -1==direction else self.DEFAULT_RWALKANIM_ID 
+            if -1==direction:
+                self.currentAnimationID = self.DEFAULT_LWALKANIM_ID 
+            elif 1==direction:
+                self.DEFAULT_RWALKANIM_ID 
         
         if(-1==direction):
             self.lastDirection = Direction.WEST
@@ -225,6 +233,7 @@ class Fighter:
 
         # Moving logic
         if(self.currentActionState==ActionState.MOVING):
+
             if(Direction.WEST == self.lastDirection):
                 if(not self.isRunning):
                     self.currentAnimationID = self.DEFAULT_LWALKANIM_ID 
@@ -247,7 +256,7 @@ class Fighter:
             ):
                 self.renderbox.x += self.xVelocity
                 self.hitbox.x += self.xVelocity
-        
+
             #scaledHeight = self.hitbox.h*scaleFactor;
 
             # Update y position
@@ -348,3 +357,8 @@ class Fighter:
     
     def getCurrentAnimationFrame(self):
         return self.animations[self.currentAnimationID].getCurrentFrame()
+    
+    # Abstract function, leave this here
+    # for it to be implemented by RangedEnemy
+    def shoot(self):
+        pass

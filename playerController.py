@@ -14,7 +14,9 @@ def updatePlayerControl(player : Riku, keyboardMap : list, enemies : list, leftB
         player.currentActionState==ActionState.DYING
         or player.currentActionState==ActionState.ATTACKING1
         or player.currentActionState==ActionState.ATTACKING2
-        or player.currentActionState==ActionState.ATTACKING3        
+        or player.currentActionState==ActionState.ATTACKING3 
+        or player.currentActionState==ActionState.CHARGESHOOT
+        or player.currentActionState==ActionState.SHOOT       
     ):
         return
     
@@ -57,6 +59,13 @@ def updatePlayerControl(player : Riku, keyboardMap : list, enemies : list, leftB
     if keyboardMap[pygame.K_l]:
         if(not player.currentActionState==ActionState.ATTACKING3):
             player.attack3(enemies, leftBound, rightBound)
+        return
+
+    # TEST ONLY: Shoot key
+    if keyboardMap[pygame.K_o]:
+        if(not (player.currentActionState==ActionState.CHARGESHOOT
+           or player.currentActionState==ActionState.SHOOT)):
+            player.shoot()
         return
 
     if keyboardMap[pygame.K_w]: player.setYMove(-1)

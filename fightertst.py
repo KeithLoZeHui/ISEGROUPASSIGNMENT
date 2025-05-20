@@ -11,6 +11,7 @@ from meleeEnemy import *
 from rangedEnemy import *
 from spritesheet import *
 from playerController import *
+from meleeAIs import *
 from spriteLoader import*
 from entityRenderer import *
 
@@ -27,11 +28,13 @@ LOWERYBOUND = SCRH - 10 #(SCRH/5)
 
 #f = Fighter((SCRW/2)-(CAPTAIN_WALKANIM_DIMS[0]/2), SCRH-CAPTAIN_WALKANIM_DIMS[1], INITIALHP, INITIALSP, MAXHP, MAXSP)
 
+'''
 player = Riku((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
 player.setHitbox(AABB((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], CAPTAIN_ANIM_DIMS[1][0], CAPTAIN_ANIM_DIMS[1][1]))
 player.renderbox = AABB((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], CAPTAIN_ANIM_DIMS[1][0], CAPTAIN_ANIM_DIMS[1][1])
 player.walkSpeed = 2
 player.runSpeed = 4
+'''
 
 
 '''
@@ -43,14 +46,13 @@ player.runSpeed = 4
 player.lastDirection=Direction.EAST
 '''
 
-'''
 player = RangedEnemy((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2), LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
 player.setHitbox(AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*2, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1]))
 player.renderbox = AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*2, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1])
 player.walkSpeed = 2
 player.runSpeed = 4
 player.lastDirection=Direction.EAST
-'''
+
 
 # Tier 1
 tstEnemy1 = MeleeEnemy((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2), LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
@@ -86,6 +88,10 @@ tstEnemy4.lastDirection=Direction.EAST
 
 enemies = [tstEnemy1, tstEnemy2, tstEnemy3, tstEnemy4]
 
+arrowSystem = ArrowSystem()
+for e in enemies:
+    arrowSystem.addVulnerableEntity(e)
+
 # Initialize Pygame
 pygame.init()
 
@@ -97,72 +103,8 @@ pygame.display.set_caption("Fighter testing")
 # any image data inside them. Their current index is then
 # used to access the 'animationsData' array below
 
-rikuAnimations = [
-    Animation(1000/5, 5), # idleLeftAnimation
-    Animation(1000/5, 5), # idleRightAnimation
-
-    Animation(1000/9, 9), # walkLeftAnimation
-    Animation(1000/9, 9), # walkRightAnimation
-
-    Animation(1000/8, 8), # runLeftAnimation
-    Animation(1000/8, 8), # runRightAnimation
-
-    Animation(100/2, 2), # blockLeftAnimation
-    Animation(100/2, 2), # blockRightAnimation 
-
-    Animation(100/2, 2), # hurtLeftAnimation
-    Animation(100/2, 2), # hurtRightAnimation
-
-    Animation(800/6, 6), # deadLeftAnimation
-    Animation(800/6, 6), # deadRightAnimation
-
-    Animation(400/4, 4), # attack1LeftAnimation
-    Animation(400/4, 4), # attack1RightAnimation 
-
-    Animation(400/5, 5), # attack2LeftAnimation
-    Animation(400/5, 5), # attack2RightAnimation
-
-    Animation(400/4, 4), # attack3LeftAnimation
-    Animation(400/4, 4)  # attack3RightAnimation
-]
-
-archerAnimations = [
-    Animation(1000/5, 9), # idleLeftAnimation
-    Animation(1000/5, 9), # idleRightAnimation
-
-    Animation(1000/9, 8), # walkLeftAnimation
-    Animation(1000/9, 8), # walkRightAnimation
-
-    Animation(1000/8, 8), # runLeftAnimation
-    Animation(1000/8, 8), # runRightAnimation
-
-    Animation(0, 0), # blockLeftAnimation
-    Animation(0, 0), # blockRightAnimation 
-
-    Animation(100/2, 3), # hurtLeftAnimation
-    Animation(100/2, 3), # hurtRightAnimation
-
-    Animation(800/6, 5), # deadLeftAnimation
-    Animation(800/6, 5), # deadRightAnimation
-
-    Animation(400/4, 5), # attack1LeftAnimation
-    Animation(400/4, 5), # attack1RightAnimation 
-
-    Animation(400/5, 5), # attack2LeftAnimation
-    Animation(400/5, 5), # attack2RightAnimation
-
-    Animation(400/4, 5), # attack3LeftAnimation
-    Animation(400/4, 5),  # attack3RightAnimation
-
-    Animation(1000/11, 11), # Shot charge left animation
-    Animation(2000/11, 11), # Shot charge right animation
-
-    Animation(500/3, 3), # Shot left animation
-    Animation(500/3, 3), # Shot right animation
-
-    Animation(1000, 1), # Arrow (not an animation)
-    Animation(1000, 1), # Arrow (not an animation)
-]
+rikuAnimations = [Animation(a[0], a[1]) for a in MELEE_ANIMATIONS_SETUP]
+archerAnimations = [Animation(a[0], a[1]) for a in RANGED_ANIMATIONS_SETUP]
 
 # Load the background picture
 background = loadBackground()
@@ -179,14 +121,33 @@ meleeTier4AnimationsData = loadMeleeSprites(4)
 
 rangedTier1AnimationsData = loadRangedTier1Sprites()
 
+rightArrowSprite = rangedTier1AnimationsData[(2*12)-2][0]
+leftArrowSprite = rangedTier1AnimationsData[(2*12)-1][0]
+
+animationAtlas = [
+    rikuAnimationsData,
+    
+    meleeTier1AnimationsData,
+    meleeTier2AnimationsData,
+    meleeTier3AnimationsData,
+    meleeTier4AnimationsData,
+
+    rangedTier1AnimationsData,
+    [],
+    [],
+    [],
+
+    [rightArrowSprite, leftArrowSprite]
+]
+
 # Attach animations in order !!
 
-for a in rikuAnimations:
-    player.addAnimation(a)
+#for a in rikuAnimations:
+#    player.addAnimation(a)
 
 # Only for testing !!
-#for a in archerAnimations:
-#    player.addAnimation(a)
+for a in archerAnimations:
+    player.addAnimation(a)
 
 for e in enemies:
     for a in rikuAnimations:
@@ -220,9 +181,11 @@ clock = pygame.time.Clock()
 # Set to True to show hitboxes/boundaries
 collisionsShown = False
 
-while running:
+def handleInput():
 
-    ######## INPUT ########
+    global running
+    global keyboardMap
+    global prevKeyboardMap
 
     keyboardChanged = False
 
@@ -250,9 +213,13 @@ while running:
     if keyboardChanged:
         for i in keyboardMap: prevKeyboardMap[i]=keyboardMap[i]
 
-    # (Later include all the input logic in its own function ?)
+def update():
 
-    ######## UPDATE ########
+    global collisionsShown
+    global arrowSystem
+    global player
+    global keyboardMap
+    global enemies
 
     if(keyboardMap[pygame.K_c] 
     and (prevKeyboardMap[pygame.K_c] != keyboardMap[pygame.K_c])):
@@ -263,14 +230,22 @@ while running:
     # Update entity controllers
     updatePlayerControl(player, keyboardMap, enemies, 0, SCRW)
 
+    # Update AIs
+    #updateLobotomite(player, tstEnemy1)
+    #updateLobotomite(player, tstEnemy2)
+    #updateLobotomite(player, tstEnemy3)
+    #updateLobotomite(player, tstEnemy4)
+
     # Update entity behaviour 
-    player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
+    player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, arrowSystem)
 
     # Update enemy behaviour
     for e in enemies:
         e.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
 
-    ######## RENDER ########
+    arrowSystem.update(0, SCRW)
+
+def render():
 
     # (Later include all the render logic in its own function)
 
@@ -287,17 +262,40 @@ while running:
         pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
         pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
 
+    objArr = []
+    objTypeArr = []
+    
+    objArr.append(player)
+    objTypeArr.append(RENDEROBJ_RANGEDTIER1)  #(RENDEROBJ_RIKU)
+    
+    objArr.append(tstEnemy1)
+    objTypeArr.append(RENDEROBJ_MELEETIER1)
+    objArr.append(tstEnemy2)
+    objTypeArr.append(RENDEROBJ_MELEETIER2)
+    objArr.append(tstEnemy3)
+    objTypeArr.append(RENDEROBJ_MELEETIER3)
+    objArr.append(tstEnemy4)
+    objTypeArr.append(RENDEROBJ_MELEETIER4)
+
+    for a in arrowSystem.arrows:
+        objArr.append(a)
+        objTypeArr.append(RENDEROBJ_ARROW)
+
+    renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown)
+
     # Render the player
-    renderRiku(screen, player, rikuAnimationsData, collisionsShown, CAPTAIN_RENDER_CORRECTIONS)
+    #renderRiku(screen, player, rikuAnimationsData, collisionsShown, CAPTAIN_RENDER_CORRECTIONS)
     #renderMeleeEnemy(screen, player, meleeTier1AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    #renderRangedEnemy(screen, player, rangedTier1AnimationsData, collisionsShown, ARCHER_RENDER_CORRECTIONS)
+    #renderRangedEnemy(screen, player, rangedTier1AnimationsData, collisionsShown) #, ARCHER_RENDER_CORRECTIONS)
 
     # Render test enemies
     
-    renderMeleeEnemy(screen, tstEnemy1, meleeTier1AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    renderMeleeEnemy(screen, tstEnemy2, meleeTier2AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    renderMeleeEnemy(screen, tstEnemy3, meleeTier3AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    renderMeleeEnemy(screen, tstEnemy4, meleeTier4AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
+    #renderMeleeEnemy(screen, tstEnemy1, meleeTier1AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
+    #renderMeleeEnemy(screen, tstEnemy2, meleeTier2AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
+    #renderMeleeEnemy(screen, tstEnemy3, meleeTier3AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
+    #renderMeleeEnemy(screen, tstEnemy4, meleeTier4AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
+
+    #renderArrows(screen, arrowSystem, collisionsShown, leftArrowSprite, rightArrowSprite)
 
     #for e in enemies:
     #    renderMeleeEnemy(screen, e, 
@@ -307,10 +305,27 @@ while running:
 
     # Update display
     pygame.display.flip()
-    
-    # Control frame rate
-    clock.tick(60)
 
-# Quit Pygame
-pygame.quit()
-sys.exit()
+# Main entry point
+if __name__ == '__main__':
+
+    while running:
+
+        ######## INPUT ########
+
+        handleInput()
+
+        ######## UPDATE ########
+        
+        update()
+
+        ######## RENDER ########
+
+        render()
+ 
+        # Control frame rate
+        clock.tick(60)
+
+    # Exit...
+    pygame.quit()
+    sys.exit()
