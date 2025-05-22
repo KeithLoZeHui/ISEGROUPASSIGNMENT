@@ -342,7 +342,10 @@ class Fighter:
         if damage < self.hp:
             self.hp -= damage
         else:
-            self.currentActionState = ActionState.DYING
+            self.die()
+            #self.currentActionState = ActionState.DYING
+
+        self.animations[self.currentAnimationID].reset()
 
     def die(self):
         self.currentActionState = ActionState.DYING

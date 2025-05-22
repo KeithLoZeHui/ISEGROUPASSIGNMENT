@@ -177,6 +177,162 @@ ARROW_RENDER_YCORRECTION = (ARCHER_ANIM_DIMS[10][1]/2)-(ARROW_DIMENSIONS[1])
 
 #print(ARCHER_RENDER_CORRECTIONS)
 
+CAPTAIN_RENDER_CORRECTION_XMASK = [
+    # Idle
+    0,
+    0,
+    # Walk
+    0, 
+    0,
+    # Run
+    0,
+    0,
+    # Block 
+    0,    
+    0,
+    # Hurt
+    0, 
+    0,
+    # Dead
+    0, 
+    -1,
+    # Attack 1
+    0, 
+    -1,
+    # Attack 2
+    0,
+    -1,
+    # Attack 3
+    0,
+    -1,
+    # Shot charge
+    0,
+    0,
+    # Shot
+    0,
+    0,
+    # Arrow
+    0,
+    0,
+]
+
+CAPTAIN_RENDER_CORRECTION_YMASK = [
+    # Idle
+    0,
+    0,
+    # Walk
+    0, 
+    0,
+    # Run
+    1,
+    1,
+    # Block
+    0,    
+    0,
+    # Hurt
+    0, 
+    0,
+    # Dead
+    0, 
+    0,
+    # Attack 1
+    0, 
+    0,
+    # Attack 2
+    -1,
+    -1,
+    # Attack 3
+    0,
+    0,
+    # Shot charge
+    0,
+    0,
+    # Shot
+    0,
+    0,
+    # Arrow
+    0,
+    0,
+]
+
+SAMURAI_RENDER_CORRECTION_XMASK = [
+    # Idle
+    0,
+    0,
+    # Walk
+    0, 
+    0,
+    # Run
+    0,
+    0,
+    # Block (not used)
+    0,    
+    0,
+    # Hurt
+    0, 
+    0,
+    # Dead
+    0, 
+    0,
+    # Attack 1
+    0, 
+    0,
+    # Attack 2
+    0,
+    0,
+    # Attack 3
+    0,
+    0,
+    # Shot charge
+    0,
+    0,
+    # Shot
+    0,
+    0,
+    # Arrow
+    0,
+    0,
+]
+
+SAMURAI_RENDER_CORRECTION_YMASK = [
+    # Idle
+    0,
+    0,
+    # Walk
+    0, 
+    0,
+    # Run
+    0,
+    0,
+    # Block (not used)
+    0,    
+    0,
+    # Hurt
+    0, 
+    0,
+    # Dead
+    0, 
+    0,
+    # Attack 1
+    0, 
+    0,
+    # Attack 2
+    0,
+    0,
+    # Attack 3
+    0,
+    0,
+    # Shot charge
+    0,
+    0,
+    # Shot
+    0,
+    0,
+    # Arrow
+    0,
+    0,
+]
+
 ARCHER_RENDER_CORRECTION_XMASK = [
     # Idle
     0,

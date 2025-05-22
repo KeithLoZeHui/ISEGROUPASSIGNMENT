@@ -12,6 +12,7 @@ def updatePlayerControl(player : Riku, keyboardMap : list, enemies : list, leftB
     # Avoid interruption of these actions
     if(
         player.currentActionState==ActionState.DYING
+        or player.currentActionState==ActionState.HURTING
         or player.currentActionState==ActionState.ATTACKING1
         or player.currentActionState==ActionState.ATTACKING2
         or player.currentActionState==ActionState.ATTACKING3 

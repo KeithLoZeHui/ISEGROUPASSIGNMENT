@@ -57,10 +57,26 @@ IMAGENAMES = [
     "Attack3Right", "Attack3Left" 
 ]
 
-INPUTDIRECTORY = os.path.join("Tier1", "Melee")
+INPUTDIRECTORY = os.path.join("Tier4", "Melee")
+
+def generateMeleeTier1():
+
+    outputDirectory = os.path.join("Tier1", "Melee")
+
+    for inputImgName in IMAGENAMES:
+        
+        inputImageLocation = os.path.join(INPUTDIRECTORY, inputImgName+IMAGE_FORMAT)
+        print("Input image location = ", inputImageLocation)
+
+        outputImgLocation = os.path.join(outputDirectory, inputImgName+IMAGE_FORMAT)
+        print("Output image location = ", outputImgLocation)
+
+        if("RunLeft" == inputImgName or "RunRight" == inputImgName):
+            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_RUN_CONVERTED, orangeC2_BGRA, outputImgLocation)
+        else:
+            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_CONVERTED, orangeC2_BGRA, outputImgLocation)
 
 def generateMeleeTier2():
-
     outputDirectory = os.path.join("Tier2", "Melee")
 
     for inputImgName in IMAGENAMES:
@@ -68,13 +84,13 @@ def generateMeleeTier2():
         inputImageLocation = os.path.join(INPUTDIRECTORY, inputImgName+IMAGE_FORMAT)
         print("Input image location = ", inputImageLocation)
 
-        outputImgLocation = os.path.join(outputDirectory, inputImgName+"Modified"+IMAGE_FORMAT)
+        outputImgLocation = os.path.join(outputDirectory, inputImgName+IMAGE_FORMAT)
         print("Output image location = ", outputImgLocation)
 
         if("RunLeft" == inputImgName or "RunRight" == inputImgName):
-            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_RUN_CONVERTED, orangeC2_BGRA, outputImgLocation)
+            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_RUN_CONVERTED, redC2_BGRA, outputImgLocation)
         else:
-            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_CONVERTED, orangeC2_BGRA, outputImgLocation)
+            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_CONVERTED, redC2_BGRA, outputImgLocation)
 
 def generateMeleeTier3():
     outputDirectory = os.path.join("Tier3", "Melee")
@@ -84,23 +100,7 @@ def generateMeleeTier3():
         inputImageLocation = os.path.join(INPUTDIRECTORY, inputImgName+IMAGE_FORMAT)
         print("Input image location = ", inputImageLocation)
 
-        outputImgLocation = os.path.join(outputDirectory, inputImgName+"Modified"+IMAGE_FORMAT)
-        print("Output image location = ", outputImgLocation)
-
-        if("RunLeft" == inputImgName or "RunRight" == inputImgName):
-            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_RUN_CONVERTED, redC2_BGRA, outputImgLocation)
-        else:
-            convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_CONVERTED, redC2_BGRA, outputImgLocation)
-
-def generateMeleeTier4():
-    outputDirectory = os.path.join("Tier4", "Melee")
-
-    for inputImgName in IMAGENAMES:
-        
-        inputImageLocation = os.path.join(INPUTDIRECTORY, inputImgName+IMAGE_FORMAT)
-        print("Input image location = ", inputImageLocation)
-
-        outputImgLocation = os.path.join(outputDirectory, inputImgName+"Modified"+IMAGE_FORMAT)
+        outputImgLocation = os.path.join(outputDirectory, inputImgName+IMAGE_FORMAT)
         print("Output image location = ", outputImgLocation)
 
         if("RunLeft" == inputImgName or "RunRight" == inputImgName):
@@ -108,6 +108,6 @@ def generateMeleeTier4():
         else:   
             convertMeleeEnemyColors(inputImageLocation, DEFAULT_COLORS_CONVERTED, purpleC2_BGRA, outputImgLocation)
     
+generateMeleeTier1()
 generateMeleeTier2()
 generateMeleeTier3()
-generateMeleeTier4()

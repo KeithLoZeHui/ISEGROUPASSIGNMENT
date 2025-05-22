@@ -12,7 +12,7 @@ class ArrowSystem:
 
     MAX_ARROWS = 10
     MAX_VULNERABLE_ENTITIES = 10
-    DEF_ARROW_SPEED = 5
+    DEF_ARROW_SPEED = 10
 
     def __init__(self):
         #self.nArrows = 0
@@ -29,13 +29,19 @@ class ArrowSystem:
             # Check collisions (naive algorithm, but still works)
             for e in self.vulnerableEntities:
                 if(a.hitbox.overlaps(e.hitbox)):
-                    e.hurt(a.damage)
-                    a.direction = 0
-                    print("Arrow hit!")
-
+                    
+                    # Deflection logic
+                    if(e.currentActionState == ActionState.BLOCKING
+                    and 0==e.animations[e.currentAnimationID].currentFrame):
+                        a.direction = -a.direction
+                        print("Arrow deflected!")
+                    else: # Damage logic
+                        e.hurt(a.damage)
+                        a.direction = 0
+                        print("Arrow hit!")
 
             # Check if out of bounds
-            if(a.hitbox.x-a.hitbox.w <= leftXbound
+            if(a.hitbox.x+a.hitbox.w <= leftXbound
             or a.hitbox.x >= rightXbound):
                 # Set arrow direction to 0 to eliminate it 
                 a.direction = 0

@@ -37,7 +37,7 @@ def renderArrowCollisionBox(screen, arrow, collisionsShown):
                          (arrow.hitbox.x+arrow.hitbox.w+10, arrow.hitbox.pseudoZ),
                          2)
 
-def renderStatusBars(screen, player):
+def renderStatusBars(screen, player, font):
     if(not player.currentActionState == ActionState.DYING):
 
         # Render the cooldown bar (if available)
@@ -64,11 +64,11 @@ def renderStatusBars(screen, player):
         healthBarH = 10
         healthBarX = player.hitbox.x
         healthBarY = player.hitbox.y-(2*healthBarH)-2
-        font = pygame.font.Font(None, 18)
+        #font = pygame.font.Font(None, 18)
 
         # Draw health text
-        healthText = font.render(f"HP:", True, WHITE)
-        screen.blit(healthText, (healthBarX-30, healthBarY))
+        #healthText = font.render(f"HP:", False, WHITE)
+        #screen.blit(healthText, (healthBarX-30, healthBarY))
 
         # Draw health bar fill
         healthFillW = (player.hp / player.maxHp) * healthBarW
@@ -85,15 +85,20 @@ def renderStatusBars(screen, player):
         staminaBarY = player.hitbox.y-staminaBarH
 
         # Draw stamina text
-        staminaText = font.render(f"SP:", True, WHITE)
-        screen.blit(staminaText, (staminaBarX-30, staminaBarY))
+        #staminaText = font.render(f"SP:", False, WHITE)
+        #screen.blit(staminaText, (staminaBarX-30, staminaBarY))
 
         # Draw stamina bar fill
         staminaFillW = (player.sp / player.maxSp) * staminaBarW
         staminaColor = BLUE
         pygame.draw.rect(screen, staminaColor, (staminaBarX, staminaBarY, staminaFillW-4, staminaBarH))
 
-def applyRikuRenderCorrections(riku, renderCorrections):
+# Render correction: Given that the animations vary in resolutions,
+# it is necessary to align all of them around a common coordinate.
+# The 'render correction' is a transformation for aligning animations
+# with obvious resolution discrepancies with the rest of the animations 
+
+def applyRikuRenderCorrections(riku, renderCorrections, renderCorrectionXMask, renderCorrectionYMask):
     # Render correction: Given that the animations vary in resolutions,
     # it is necessary to align all of them around a common coordinate.
     # The 'render correction' is a transformation for aligning animations
@@ -107,67 +112,29 @@ def applyRikuRenderCorrections(riku, renderCorrections):
         int(floor(float(riku.currentAnimationID)/indexRatio))
     )
 
-    renderCorrectionX = renderCorrections[renderCorrectionID][0]
-    renderCorrectionY = renderCorrections[renderCorrectionID][1]
+    renderCorrectionX = renderCorrections[renderCorrectionID][0]*renderCorrectionXMask[riku.currentAnimationID]
+    renderCorrectionY = renderCorrections[renderCorrectionID][1]*renderCorrectionYMask[riku.currentAnimationID]
 
-    #print("X correction = ", renderCorrectionX)
-    #print("Y correction = ", renderCorrectionY)
-    
-    # Apply render correction for player run (only on Y)
-    if(riku.DEFAULT_RRUNANIM_ID == riku.currentAnimationID
-       or riku.DEFAULT_LRUNANIM_ID == riku.currentAnimationID):
-        riku.renderbox.y += renderCorrectionY
+    # Apply render corrections for player walk (On X and Y)
+    riku.renderbox.x += renderCorrectionX
+    riku.renderbox.y += renderCorrectionY
 
-    # Apply render correction for player death (Only on X)
-    if(riku.DEFAULT_LDEATHANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x -= renderCorrectionX
-
-    # Apply render correction for player attack 1 (Only on X)
-    if(riku.LATTACK1ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x -= renderCorrectionX
-
-    # Apply render correction for player attack 2 (On X and Y)
-    if(riku.LATTACK2ANIM_ID == riku.currentAnimationID
-        or riku.RATTACK2ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.y -= renderCorrectionY
-        if(riku.LATTACK2ANIM_ID == riku.currentAnimationID):
-            riku.renderbox.x -= renderCorrectionX 
-
-    # Apply render correction for player attack 3 (Only on X)
-    if(riku.LATTACK3ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x -= renderCorrectionX
-
-def revertRikuRenderCorrections(riku, renderCorrections):
+def revertRikuRenderCorrections(riku, renderCorrections, renderCorrectionXMask, renderCorrectionYMask):
     # Convert from an animation index to a render correction index
     indexRatio = float((riku.LATTACK3ANIM_ID+1)/len(renderCorrections))
     renderCorrectionID = (
         int(floor(float(riku.currentAnimationID)/indexRatio))
     )
 
-    renderCorrectionX = renderCorrections[renderCorrectionID][0]
-    renderCorrectionY = renderCorrections[renderCorrectionID][1]
+    renderCorrectionX = renderCorrections[renderCorrectionID][0]*renderCorrectionXMask[riku.currentAnimationID]
+    renderCorrectionY = renderCorrections[renderCorrectionID][1]*renderCorrectionYMask[riku.currentAnimationID]
 
-    # Revert render corrections
-    if(riku.LATTACK1ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x += renderCorrectionX #CAPTAIN_ATTACK1_RENDERCORRECTION[0]
+    # Apply render corrections for player walk (On X and Y)
+    riku.renderbox.x -= renderCorrectionX
+    riku.renderbox.y -= renderCorrectionY
 
-    if(riku.LATTACK2ANIM_ID == riku.currentAnimationID
-        or riku.RATTACK2ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.y += renderCorrectionY #CAPTAIN_ATTACK2_RENDERCORRECTION[1]
-        if(riku.LATTACK2ANIM_ID == riku.currentAnimationID):
-            riku.renderbox.x += renderCorrectionX #CAPTAIN_ATTACK2_RENDERCORRECTION[0]
 
-    if(riku.LATTACK3ANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x += renderCorrectionX #CAPTAIN_ATTACK3_RENDERCORRECTION[0]
-
-    if(riku.DEFAULT_LDEATHANIM_ID == riku.currentAnimationID):
-        riku.renderbox.x += renderCorrectionX #CAPTAIN_DEADANIM_RENDERCORRECTION[0]
-    
-    if(riku.DEFAULT_RRUNANIM_ID == riku.currentAnimationID
-       or riku.DEFAULT_LRUNANIM_ID == riku.currentAnimationID):
-        riku.renderbox.y -= renderCorrectionY
-
-def applyMeleeEnemyRenderCorrections(meleeEnemy, renderCorrections):
+def applyMeleeEnemyRenderCorrections(meleeEnemy, renderCorrections, renderCorrectionXMask, renderCorrectionYMask):
     # Render correction: Given that the animations vary in resolutions,
     # it is necessary to align all of them around a common coordinate.
     # The 'render correction' is a transformation for aligning animations
@@ -183,8 +150,8 @@ def applyMeleeEnemyRenderCorrections(meleeEnemy, renderCorrections):
 
     #print(renderCorrectionID)
 
-    renderCorrectionX = renderCorrections[renderCorrectionID][0]
-    renderCorrectionY = renderCorrections[renderCorrectionID][1]
+    renderCorrectionX = renderCorrections[renderCorrectionID][0]#*renderCorrectionXMask[renderCorrectionID]
+    renderCorrectionY = renderCorrections[renderCorrectionID][1]#*renderCorrectionYMask[renderCorrectionID]
 
     #print("X correction = ", renderCorrectionX)
     #print("Y correction = ", renderCorrectionY)
@@ -245,12 +212,6 @@ def revertMeleeEnemyRenderCorrections(meleeEnemy, renderCorrections):
 
 
 def applyRangedEnemyRenderCorrections(rangedEnemy, renderCorrections, renderCorrectionXMask, renderCorrectionYMask):
-    # Render correction: Given that the animations vary in resolutions,
-    # it is necessary to align all of them around a common coordinate.
-    # The 'render correction' is a transformation for aligning animations
-    # with obvious resolution discrepancies with the rest of the animations 
-
-    # Apply render corrections
 
     # Convert from an animation index to a render correction index
     indexRatio = float((rangedEnemy.LARROW_ID+1)/len(renderCorrections))
@@ -260,11 +221,6 @@ def applyRangedEnemyRenderCorrections(rangedEnemy, renderCorrections, renderCorr
 
     renderCorrectionX = renderCorrections[renderCorrectionID][0]*renderCorrectionXMask[rangedEnemy.currentAnimationID]
     renderCorrectionY = renderCorrections[renderCorrectionID][1]*renderCorrectionYMask[rangedEnemy.currentAnimationID]
-
-    #print("X correction = ", renderCorrectionX)
-    #print("Y correction = ", renderCorrectionY)
-    
-    #print(f"Y correction when applying correction: {renderCorrectionY}")
 
     # Apply render corrections for player walk (On X and Y)
     rangedEnemy.renderbox.x += renderCorrectionX
@@ -287,7 +243,7 @@ def revertRangedEnemyRenderCorrections(rangedEnemy, renderCorrections, renderCor
     rangedEnemy.renderbox.x -= renderCorrectionX
     rangedEnemy.renderbox.y -= renderCorrectionY
 
-def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : bool):
+def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : bool, font):
     
     renderEntityCollisionBoxes(screen, player, collisionsShown)
 
@@ -295,7 +251,7 @@ def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : b
     targetFrame = animationsData[player.currentAnimationID][player.getCurrentAnimationFrame()]
     scaledSize = (targetFrame.get_width()*scaleFactor, targetFrame.get_height()*scaleFactor)
 
-    applyRikuRenderCorrections(player, CAPTAIN_RENDER_CORRECTIONS)
+    applyRikuRenderCorrections(player, CAPTAIN_RENDER_CORRECTIONS, CAPTAIN_RENDER_CORRECTION_XMASK, CAPTAIN_RENDER_CORRECTION_YMASK)
 
     player.renderbox.w = scaledSize[0]
     player.renderbox.h = scaledSize[1]
@@ -304,11 +260,11 @@ def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : b
     scaledMC = pygame.transform.scale(targetFrame, scaledSize)
     screen.blit(scaledMC, (player.renderbox.x, player.renderbox.y)) #(f.hitbox.x, f.hitbox.y))
 
-    revertRikuRenderCorrections(player, CAPTAIN_RENDER_CORRECTIONS)
+    revertRikuRenderCorrections(player, CAPTAIN_RENDER_CORRECTIONS, CAPTAIN_RENDER_CORRECTION_XMASK, CAPTAIN_RENDER_CORRECTION_YMASK)
 
-    renderStatusBars(screen, player)
+    renderStatusBars(screen, player, font)
 
-def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown): #, renderCorrections):
+def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown, font): #, renderCorrections):
 
     renderEntityCollisionBoxes(screen, meleeEnemy, collisionsShown)
 
@@ -316,7 +272,7 @@ def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown): #, re
     targetFrame = animationsData[meleeEnemy.currentAnimationID][meleeEnemy.getCurrentAnimationFrame()]
     scaledSize = (targetFrame.get_width()*scaleFactor, targetFrame.get_height()*scaleFactor)
 
-    applyMeleeEnemyRenderCorrections(meleeEnemy, SAMURAI_RENDER_CORRECTIONS)#renderCorrections)
+    applyMeleeEnemyRenderCorrections(meleeEnemy, SAMURAI_RENDER_CORRECTIONS, SAMURAI_RENDER_CORRECTION_XMASK, SAMURAI_RENDER_CORRECTION_YMASK)#renderCorrections)
 
     meleeEnemy.renderbox.w = scaledSize[0]
     meleeEnemy.renderbox.h = scaledSize[1]
@@ -325,11 +281,11 @@ def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown): #, re
     scaledMC = pygame.transform.scale(targetFrame, scaledSize)
     screen.blit(scaledMC, (meleeEnemy.renderbox.x, meleeEnemy.renderbox.y)) #(f.hitbox.x, f.hitbox.y))
 
-    revertMeleeEnemyRenderCorrections(meleeEnemy, SAMURAI_RENDER_CORRECTIONS) #renderCorrections)
+    revertMeleeEnemyRenderCorrections(meleeEnemy, SAMURAI_RENDER_CORRECTIONS) #, SAMURAI_RENDER_CORRECTION_XMASK, SAMURAI_RENDER_CORRECTION_YMASK) #renderCorrections)
 
-    renderStatusBars(screen, meleeEnemy)
+    renderStatusBars(screen, meleeEnemy, font)
 
-def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown):
+def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown, font):
 
     # Scale and Render the character
     targetFrame = animationsData[rangedEnemy.currentAnimationID][rangedEnemy.getCurrentAnimationFrame()]
@@ -348,7 +304,7 @@ def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown):
 
     revertRangedEnemyRenderCorrections(rangedEnemy, ARCHER_RENDER_CORRECTIONS, ARCHER_RENDER_CORRECTION_XMASK, ARCHER_RENDER_CORRECTION_YMASK)
 
-    renderStatusBars(screen, rangedEnemy)
+    renderStatusBars(screen, rangedEnemy, font)
 
 def renderArrow(screen, arrow, collisionsShown, leftArrowSprite, rightArrowSprite):
             renderArrowCollisionBox(screen, arrow, collisionsShown)
@@ -372,7 +328,6 @@ def renderArrows(screen, arrowSystem, collisionsShown, leftArrowSprite, rightArr
             
             targetFrame = leftArrowSprite if -1 == arrowArr[i].direction else rightArrowSprite
 
-
             scaledSize = (targetFrame.get_width()*scaleFactor, targetFrame.get_height()*scaleFactor)
 
             # Perform the actual rendering
@@ -394,7 +349,7 @@ RENDEROBJ_RANGEDTIER4 = 8
 RENDEROBJ_ARROW = 9
 
 # Objects can be fighters, arrows, particles
-def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown):
+def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font):
     
     # Create a parallel list containing the 'pseudoZ' dimension: 
     zArr = [o.hitbox.pseudoZ for o in objArr]
@@ -413,25 +368,25 @@ def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collision
     for i in range(nObjs):
 
         if(RENDEROBJ_RIKU==objTypeArr[i]):
-            renderRiku(screen, objArr[i], animationAtlas[RENDEROBJ_RIKU], collisionsShown)
+            renderRiku(screen, objArr[i], animationAtlas[RENDEROBJ_RIKU], collisionsShown, font)
 
         elif(RENDEROBJ_MELEETIER1==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER1], collisionsShown)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER1], collisionsShown, font)
         elif(RENDEROBJ_MELEETIER2==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown, font)
         elif(RENDEROBJ_MELEETIER3==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER3], collisionsShown, font)
         elif(RENDEROBJ_MELEETIER1==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER4], collisionsShown, font)
     
         elif(RENDEROBJ_RANGEDTIER1==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER1], collisionsShown)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER1], collisionsShown, font)
         elif(RENDEROBJ_RANGEDTIER2==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER2], collisionsShown)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER2], collisionsShown, font)
         elif(RENDEROBJ_RANGEDTIER3==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER3], collisionsShown)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER3], collisionsShown, font)
         elif(RENDEROBJ_RANGEDTIER4==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER4], collisionsShown)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER4], collisionsShown, font)
 
         elif(RENDEROBJ_ARROW==objTypeArr[i]):
             renderArrow(screen, objArr[i], collisionsShown, animationAtlas[RENDEROBJ_ARROW][1], animationAtlas[RENDEROBJ_ARROW][0])
@@ -441,3 +396,4 @@ def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collision
             pass
         else:
             renderArrowCollisionBox(screen, objArr[i], collisionsShown)
+
