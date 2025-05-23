@@ -1,8 +1,8 @@
 from meleeEnemy import *
 
 # Test AI controller for chasing the player
-def updateLobotomite(player, npc):
-
+def chasePlayer(player, npc):
+    
     # Make sure these actions arent interrumpted
     if(npc.currentActionState == ActionState.DYING
     or npc.currentActionState == ActionState.HURTING): 
@@ -38,3 +38,13 @@ def updateLobotomite(player, npc):
     else:
         npc.setXMove(xDirection)
         npc.setYMove(yDirection)
+
+def attackPlayer(player, npc):
+    pass
+
+class MeleeAI:
+    def __init__():
+        pass
+
+def updateMeleeAI(meleeAI):
+    pass

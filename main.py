@@ -5,7 +5,6 @@ import os
 from entityConstants import * 
 from colorConstants import * 
 from animation import *
-#from fighter import *
 from riku import *
 from meleeEnemy import *
 from rangedEnemy import *
@@ -16,6 +15,11 @@ from rangedAIs import *
 from spriteLoader import*
 from entityRenderer import *
 from slideShow import *
+from enemyHandler import *
+
+##############################################################################
+#####################       RESOURCE LOADING          ########################
+##############################################################################
 
 SCRW = 1760
 SCRH = 990
@@ -26,98 +30,46 @@ INITIALSP = MAXSP
 
 # Y boundaries of the fight 'arena'
 UPPERYBOUND = (SCRH/4)*3+40 
-LOWERYBOUND = SCRH - 10 #(SCRH/5)
+LOWERYBOUND = SCRH - 10
 
-#f = Fighter((SCRW/2)-(CAPTAIN_WALKANIM_DIMS[0]/2), SCRH-CAPTAIN_WALKANIM_DIMS[1], INITIALHP, INITIALSP, MAXHP, MAXSP)
+RIKUINITIALX = (SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2)
+RIKUINITIALY = LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1]
 
-player = Riku((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-player.setHitbox(AABB((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], CAPTAIN_ANIM_DIMS[1][0], CAPTAIN_ANIM_DIMS[1][1]))
-player.renderbox = AABB((SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2), LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1], CAPTAIN_ANIM_DIMS[1][0], CAPTAIN_ANIM_DIMS[1][1])
+player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP, MAXHP, MAXSP)
 player.walkSpeed = 2
 player.runSpeed = 4
-
-
-'''
-player = Riku((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-player.setHitbox(AABB((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1]))
-player.renderbox = AABB((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
-player.walkSpeed = 2
-player.runSpeed = 4
-player.lastDirection=Direction.EAST
-'''
-
-'''
-player = RangedEnemy((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2), LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-player.setHitbox(AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*2, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1]))
-player.renderbox = AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*2, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1], ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1])
-player.walkSpeed = 2
-player.runSpeed = 4
-player.lastDirection=Direction.EAST
-'''
-
-# Tier 1
-tstEnemy1 = MeleeEnemy((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2), LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-tstEnemy1.setHitbox(AABB((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2), LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1]))
-tstEnemy1.renderbox = AABB((SCRW/2)-(SAMURAI_ANIM_DIMS[1][0]/2), LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
-tstEnemy1.walkSpeed = 2
-tstEnemy1.runSpeed = 4
-tstEnemy1.lastDirection=Direction.EAST
-
-'''
-# Tier 2
-tstEnemy2 = MeleeEnemy((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-tstEnemy2.setHitbox(AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1]))
-tstEnemy2.renderbox = AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*2, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
-tstEnemy2.walkSpeed = 2
-tstEnemy2.runSpeed = 4
-tstEnemy2.lastDirection=Direction.EAST
-
-# Tier 3
-tstEnemy3 = MeleeEnemy((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*4, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-tstEnemy3.setHitbox(AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*4, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1]))
-tstEnemy3.renderbox = AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*4, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
-tstEnemy3.walkSpeed = 2
-tstEnemy3.runSpeed = 4
-tstEnemy3.lastDirection=Direction.EAST
-
-# Tier 4
-tstEnemy4 = MeleeEnemy((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*6, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], INITIALHP, INITIALSP, MAXHP, MAXSP)
-tstEnemy4.setHitbox(AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*6, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1]))
-tstEnemy4.renderbox = AABB((SCRW/2)+(SAMURAI_ANIM_DIMS[1][0]/2)*6, LOWERYBOUND-SAMURAI_ANIM_DIMS[1][1], SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
-tstEnemy4.walkSpeed = 2
-tstEnemy4.runSpeed = 4
-tstEnemy4.lastDirection=Direction.EAST
-'''
-
-shooter = RangedEnemy((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*6, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1]*(3/2), INITIALHP, INITIALSP, MAXHP, MAXSP)
-shooter.setHitbox(AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*6, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1]*(3/2), ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1]))
-shooter.renderbox = AABB((SCRW/2)-(ARCHER_ANIM_DIMS[0][0]/2)*6, LOWERYBOUND-ARCHER_ANIM_DIMS[0][1]*(3/2), ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1])
-shooter.walkSpeed = 2
-shooter.runSpeed = 4
-shooter.lastDirection=Direction.EAST
-
-enemies = [shooter, tstEnemy1] #[tstEnemy1, tstEnemy2, tstEnemy3, tstEnemy4]
-
-blackBackground = pygame.Surface((SCRW, SCRH), flags=0, depth=32, masks=pygame.Color(BLACK))
-blackBackground.set_alpha(255/2)
-
-arrowSystem = ArrowSystem()
-for e in enemies:
-    arrowSystem.addVulnerableEntity(e)
-arrowSystem.addVulnerableEntity(player)
 
 # Initialize Pygame
 pygame.init()
 
+# Initialize display
 screen = pygame.display.set_mode((SCRW, SCRH))
-pygame.display.set_caption("百の剣 (Hundred Blades)")
+pygame.display.set_caption("百の剣 | Hyaku-no-Ken (Hundred Blades)")
+
+# Initialize black background for fade effects
+blackBackground = pygame.Surface((SCRW, SCRH), flags=0, depth=32, masks=pygame.Color(BLACK))
+blackBackground.set_alpha(255/2)
+
+# Initialize mixer
+pygame.mixer.init()
+
+# Load music
+try:
+    pygame.mixer.music.load(os.path.join("resources", "Main_Menu.wav"))
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)  # Loop indefinitely
+except pygame.error as e:
+    print(f"Couldn't load music: {e}")
+    sys.exit()
+
+
 
 # Creation of animation objects: These are just
 # logical representations of each animation, without
 # any image data inside them. Their current index is then 
 # used to access the 'animationsData' array below 
 
-rikuAnimations = [Animation(a[0], a[1]) for a in MELEE_ANIMATIONS_SETUP]
+meleeAnimations = [Animation(a[0], a[1]) for a in MELEE_ANIMATIONS_SETUP]
 archerAnimations = [Animation(a[0], a[1]) for a in RANGED_ANIMATIONS_SETUP]
 
 # Load the background picture
@@ -128,7 +80,6 @@ japFont = pygame.font.Font(os.path.join("resources", "ipaexg.ttf"), 24)
 
 # This is the actual image data, which is later accessed
 # in the rendering phase, within the main loop
-
 rikuAnimationsData = loadRikuSprites();
 
 meleeTier1AnimationsData = loadMeleeSprites(1)
@@ -158,26 +109,28 @@ animationAtlas = [
 ]
 
 # Attach animations in order !!
-
-for a in rikuAnimations:
+for a in meleeAnimations:
     player.addAnimation(a)
 
-# Only for testing !!
-#for a in archerAnimations:
-#    player.addAnimation(a)
+def updateMeleeEnemyAnimations(meleeArr):
+    for e in meleeArr:
+        for a in meleeAnimations:
+            e.addAnimation(a)
 
-#for e in enemies:
-#   for a in rikuAnimations:
-#        e.addAnimation(a)
+def updateRangedEnemyAnimations(rangedArr):
+    for e in rangedArr:
+        for a in archerAnimations:
+            e.addAnimation(a)
 
-for a in rikuAnimations:
-        tstEnemy1.addAnimation(a)
+##############################################################################
+##############################################################################
 
-for a in archerAnimations:
-    shooter.addAnimation(a)
+
+
+########################################################################
+# KEYBOARD LOGIC
 
 # Create the keyboard map
-
 MAXKEYS = 200
 
 prevKeyboardMap = []
@@ -198,6 +151,22 @@ def setKeyUp(keyID):
 
 holdingSpace = False
 
+########################################################################
+
+# Application states
+MAINMENU = 0
+SLIDESHOW_INTRO = 1
+GAME = 2
+PAUSE = 3
+SLIDESHOW_OUTRO = 4
+
+interfaceState = GAME
+#MAINMENU
+
+##############################################################################
+############################    MAIN MENU   ##################################
+##############################################################################
+
 # Menu substates
 MENUFADEIN = 0
 MENUIDLE = 1
@@ -216,89 +185,6 @@ titleLatin.set_alpha(0)
 
 menuText1 = font.render("Press 's' to start", False, WHITE)
 menuText1.set_alpha(0)
-
-placeHolderImage = pygame.surface.Surface((400,400))
-placeHolderImage.fill((BLUE))
-placeHolderImage.set_alpha(255)
-
-slides = [
-    Slide(  
-         placeHolderImage, 
-          ["Japan, 1590 — The Final Fires of the Sengoku Era"],
-          2500, 
-          5000, 
-          2500
-    ),
-    Slide(  
-        placeHolderImage, 
-        [
-            "As the war-torn nation crawls toward unification under Toyotomi rule, two legendary clans ",
-            "dominate the northern provinces: the dignified Momoyama Clan, based in their majestic ",
-            "stronghold at Fushimi-Momoyama Castle, and the feared Kuronagi Clan, who rule the ",
-            "mountain shadows with unmatched brutality."
-        ],
-        2500, 
-        10000, 
-        2500
-    ),
-    Slide(  
-        placeHolderImage, 
-        [
-            "Amid this fragile peace stands Riku Yamada, a promising samurai of the Momoyama clan. ",
-            "Raised in a time of bloodshed but trained in the arts of both war and diplomacy, ",
-            "Riku believed in loyalty",
-            "— until the day he was betrayed."],
-        2500, 
-        10000, 
-        2500
-    ),
-    Slide(  
-        placeHolderImage, 
-        [
-            "False letters, forged maps, and a whisper campaign frame Riku as a spy. In a ",
-            "desperate bid to maintain political ties, the Momoyama clan turns him over ",
-            "to the Kuronagi, offering him as a scapegoat to silence accusations and ",
-            "preserve the illusion of unity."
-        ],
-        2500, 
-        10000, 
-        2500
-    ),
-    Slide(  
-        placeHolderImage, 
-        [
-            "But the Kuronagi do not offer swift death. Instead, they sentence him to ",
-            "the Trial of Hyaku-no-Ken — a forgotten rite once used to test those ",
-            "accused of dishonor. Riku is cast into the Arena of a Hundred Blades, ",
-            "a brutal amphitheater built into the sacred slopes of Mount Kurama."
-        ],
-        2500, 
-        10000, 
-        2500
-    ),
-    Slide(  
-        placeHolderImage, 
-        [
-            "His punishment is simple: ",
-            "defeat one hundred warriors — blades forged from both clans."
-        ],
-        2500, 
-        10000, 
-        2500
-    ),
-]
-
-slideShowIntro = SlideShow(slides, font, screen)
-
-# Application states
-MAINMENU = 0
-SLIDESHOW_INTRO = 1
-GAME = 2
-PAUSE = 3
-SLIDESHOW_OUTRO = 4
-
-interfaceState = MAINMENU 
-#MAINMENU
 
 def handleMainMenuInput():
     
@@ -401,10 +287,92 @@ def renderMainMenu():
     # Update display
     pygame.display.flip()
 
+##############################################################################
+##############################################################################
 
-running = True
-paused = False
-clock = pygame.time.Clock()
+##############################################################################
+########################    INTRO SLIDESHOW    ###############################
+##############################################################################
+
+placeHolderImage = pygame.surface.Surface((400,400))
+placeHolderImage.fill((BLUE))
+placeHolderImage.set_alpha(255)
+
+slides = [
+    Slide(  
+         placeHolderImage, 
+          ["Japan, 1590 — The Final Fires of the Sengoku Era"],
+          2500, 
+          5000, 
+          2500
+    ),
+    Slide(  
+        placeHolderImage, 
+        [
+            "As the war-torn nation crawls toward unification under Toyotomi rule, two legendary clans ",
+            "dominate the northern provinces: the dignified Momoyama Clan, based in their majestic ",
+            "stronghold at Fushimi-Momoyama Castle, and the feared Kuronagi Clan, who rule the ",
+            "mountain shadows with unmatched brutality."
+        ],
+        2500, 
+        10000, 
+        2500
+    ),
+    Slide(  
+        placeHolderImage, 
+        [
+            "Amid this fragile peace stands Riku Yamada, a promising samurai of the Momoyama clan. ",
+            "Raised in a time of bloodshed but trained in the arts of both war and diplomacy, ",
+            "Riku believed in loyalty",
+            "— until the day he was betrayed."],
+        2500, 
+        10000, 
+        2500
+    ),
+    Slide(  
+        placeHolderImage, 
+        [
+            "False letters, forged maps, and a whisper campaign frame Riku as a spy. In a ",
+            "desperate bid to maintain political ties, the Momoyama clan turns him over ",
+            "to the Kuronagi, offering him as a scapegoat to silence accusations and ",
+            "preserve the illusion of unity."
+        ],
+        2500, 
+        10000, 
+        2500
+    ),
+    Slide(  
+        placeHolderImage, 
+        [
+            "But the Kuronagi do not offer swift death. Instead, they sentence him to ",
+            "the Trial of Hyaku-no-Ken — a forgotten rite once used to test those ",
+            "accused of dishonor. Riku is cast into the Arena of a Hundred Blades, ",
+            "a brutal amphitheater built into the sacred slopes of Mount Kurama."
+        ],
+        2500, 
+        10000, 
+        2500
+    ),
+    Slide(  
+        placeHolderImage, 
+        [
+            "His punishment is simple: ",
+            "defeat one hundred warriors — blades forged from both clans."
+        ],
+        2500, 
+        10000, 
+        2500
+    ),
+]
+
+slideShowIntro = SlideShow(slides, font, screen)
+
+##############################################################################
+##############################################################################
+
+##############################################################################
+###########################    GAMEPLAY   ####################################
+##############################################################################
 
 # Set to True to show hitboxes/boundaries
 collisionsShown = False
@@ -422,6 +390,7 @@ GAMEPLAY_STAGE4 = 8
 GAMEPLAY_BOSSCUTSCENE = 9
 GAMEPLAY_BOSSFIGHT = 10
 GAMEPLAY_OUTRO = 11
+GAMEPLAY_PAUSE = 12
 
 gameSubstate = GAMEFADEIN #GAMEFADEIN
 
@@ -474,7 +443,52 @@ STAGETEXTSTALLTIME = 3000
 stageTextStallT0 = 0
 stageTextStallElapsed = 0
 
-def updateStageXFallingText(textToRender):
+stageFinishDelayT0 = -1
+stageFinishDelayElapsed = 0
+STAGEFINISHDELAY = 2000
+
+enemyHandlerStage1 = EnemyHandler (
+    screen,
+    [
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
+            [-1, 1]
+        ),
+        EnemySpawnBatch(
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.RANGED_TIER1],
+            [-1, 1]
+        ),
+        EnemySpawnBatch (
+            [EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER1],
+            [-1, 1]
+        ),
+        EnemySpawnBatch (
+            [EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER1, EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
+            [-1, 1, -1, 1]
+        )
+    ]
+)
+
+arrowSystem = ArrowSystem()
+for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER1):
+    arrowSystem.addVulnerableEntity(e)
+arrowSystem.addVulnerableEntity(player)
+
+
+def resetFallingTextState():
+    global stageTextPhase
+    global stageTextSpeed
+    global stageTextY
+    global stageTextStallT0
+    global stageTextStallElapsed
+
+    stageTextPhase = STAGETEXT_GOINGDOWN
+    stageTextSpeed = 9.9
+    stageTextY = 0
+    stageTextStallT0 = 0
+    stageTextStallElapsed = 0
+
+def updateStageXFallingText(textToRender, nextSubState):
         global gameSubstate
         global stageTextPhase
         global stageTextSpeed
@@ -489,7 +503,7 @@ def updateStageXFallingText(textToRender):
             if(stageTextY>=stageTextMaxY):
                 stageTextPhase = STAGETEXT_STALL
                 stageTextStallT0 = pygame.time.get_ticks()
-                stageTextStallElapsed
+                #stageTextStallElapsed
             else:
                 if 0<stageTextSpeed+stageTextAcceleration:
                     stageTextSpeed+=stageTextAcceleration 
@@ -509,7 +523,7 @@ def updateStageXFallingText(textToRender):
         elif(stageTextPhase == STAGETEXT_GOINGUP):
             if(stageTextY <= 0-(stage1Text.get_width()*6)):
                 stageTextPhase=STAGETEXT_STALL
-                gameSubstate=GAMEPLAY_STAGE1
+                gameSubstate=nextSubState
                 blackBackground.set_alpha(255/2) # set for pause menu
             else:
                 stageTextSpeed-=stageTextAcceleration
@@ -537,64 +551,182 @@ def updateGame():
     global stageTextStallT0
     global stageTextStallElapsed
 
-    #if keyboardMap[pygame.K_p]:
-    #    paused = not paused
+    global stageFinishDelayElapsed
+    global stageFinishDelayT0 
 
     if(gameSubstate==GAMEFADEIN):
-
         if(0>=alphaModulation):
             gameSubstate=GAMEPLAY_PRELUDE
         else:
             alphaModulation-=4
             blackBackground.set_alpha(alphaModulation)
+    
     elif(gameSubstate==GAMEPLAY_PRELUDE):
-        updateStageXFallingText(stage1Text)
-    elif(gameSubstate==GAMEPLAY_STAGE1):
-        if paused:
-            if ( (keyboardMap[pygame.K_r])
-                and (not prevKeyboardMap[pygame.K_p])):
-                paused = False
-        else:
-            if ( (keyboardMap[pygame.K_p])
-            and (not prevKeyboardMap[pygame.K_p])):
-                paused = True 
-        
-        if ( (keyboardMap[pygame.K_q])
-            and (not prevKeyboardMap[pygame.K_q])):
-            interfaceState = MAINMENU
-            menuSubstate = MENUFADEIN
+        updateStageXFallingText(stage1Text,GAMEPLAY_STAGE1)
 
-        if paused: return
+    elif(gameSubstate==GAMEPLAY_STAGE1):
+
+        # Check if pause button was pressed
+        if ((keyboardMap[pygame.K_p])
+            and (not prevKeyboardMap[pygame.K_p])):
+                gameSubstate=GAMEPLAY_PAUSE
+                return 
 
         if (keyboardMap[pygame.K_c]
         and (prevKeyboardMap[pygame.K_c] != keyboardMap[pygame.K_c])):
             collisionsShown = not collisionsShown;
 
-        # (Later include all the update logic in its own function)
+        # Update enemy spawning 
+        nAliveEnemies = enemyHandlerStage1.countAliveEnemies()
+        if(0==nAliveEnemies):
+            if(enemyHandlerStage1.noMoreBatches):
 
-        # Update entity controllers
-        updatePlayerControl(player, keyboardMap, enemies, 0, SCRW)
+                # Start the delay timer
+                if(-1==stageFinishDelayT0):
+                    stageFinishDelayT0=pygame.time.get_ticks()
+
+                # Update the delay timer
+                stageFinishDelayElapsed = pygame.time.get_ticks() - stageFinishDelayT0
+
+                if(stageFinishDelayElapsed>=STAGEFINISHDELAY):                    
+                    enemyHandlerStage1.removeDeadEnemies()
+                    resetFallingTextState()
+                    gameSubstate=GAMEPLAY_INTERLUDE1
+
+                    # Reset the delay timer:
+                    stageFinishDelayElapsed = 0
+                    stageFinishDelayT0=-1 
+            else:
+                enemyHandlerStage1.spawnNextBatch(
+                    0-SAMURAI_ANIM_DIMS[0][0], # left bound - enemy W 
+                    SCRW, # right bound
+                    UPPERYBOUND-SAMURAI_ANIM_DIMS[0][1],
+                    LOWERYBOUND-SAMURAI_ANIM_DIMS[0][1]
+                )
+                enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER1, updateMeleeEnemyAnimations)
+                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER2, updateMeleeEnemyAnimations)
+                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER3, updateMeleeEnemyAnimations)
+                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER4, updateMeleeEnemyAnimations)
+
+                enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.RANGED_TIER1, updateRangedEnemyAnimations)
+
+        meleeEnemies = enemyHandlerStage1.getAllMeleeEnemies()
+        rangedEnemies = enemyHandlerStage1.getAllRangedEnemies()
+        allEnemies = meleeEnemies+rangedEnemies
+
+        # Update player controller
+        updatePlayerControl(
+            player, 
+            keyboardMap, 
+            allEnemies,
+            0, 
+            SCRW
+        )
 
         # Update AIs
-        
-        updateLobotomite(player, tstEnemy1)
-        #updateLobotomite(player, tstEnemy2)
-        #updateLobotomite(player, tstEnemy3)
-        #updateLobotomite(player, tstEnemy4)
-        
-        updateShooter(player, shooter)
+        for e in meleeEnemies: #enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER1):
+            chasePlayer(player, e)
+
+        for e in rangedEnemies:
+            chasePlayer(player, e)
 
         # Update entity behaviour 
         player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)#, arrowSystem)
 
-        # Update enemy behaviour
-        #for e in enemies:
-        #    e.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, arrowSystem)
+        # Update melee enemy behaviour
+        for e in meleeEnemies:
+            e.update(
+                LOWERYBOUND, 
+                UPPERYBOUND, 
+                0-(SAMURAI_ANIM_DIMS[0][0]*2), 
+                SCRW+(SAMURAI_ANIM_DIMS[0][0]*2))
 
-        tstEnemy1.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
-        shooter.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, arrowSystem)
+        # Update ranged enemy behaviour
+        for e in rangedEnemies:
+            e.update(
+                LOWERYBOUND, 
+                UPPERYBOUND, 
+                0-(SAMURAI_ANIM_DIMS[0][0]*2), 
+                SCRW+(SAMURAI_ANIM_DIMS[0][0]*2),
+                arrowSystem)
 
         arrowSystem.update(0, SCRW)
+
+    elif(gameSubstate==GAMEPLAY_INTERLUDE1):
+        updateStageXFallingText(stage2Text,GAMEPLAY_STAGE2)
+
+    elif(gameSubstate==GAMEPLAY_STAGE2):
+
+        pass
+    elif(gameSubstate==GAMEPLAY_INTERLUDE2):
+        
+        pass
+    elif(gameSubstate==GAMEPLAY_STAGE3):
+        
+        pass
+    elif(gameSubstate==GAMEPLAY_INTERLUDE3):
+        
+        pass
+    elif(gameSubstate==GAMEPLAY_PAUSE):
+        if ((keyboardMap[pygame.K_r])
+        and (not prevKeyboardMap[pygame.K_p])):
+            gameSubstate=GAMEPLAY_STAGE1
+        else:
+            if ((keyboardMap[pygame.K_q])
+            and (not prevKeyboardMap[pygame.K_q])):
+                interfaceState = MAINMENU
+                menuSubstate = MENUFADEIN
+
+def renderBackground():
+    bgScale = (SCRW, SCRH)
+    scaledBg = pygame.transform.scale(background, bgScale)
+    screen.blit(scaledBg, (0,0))
+
+def renderAllEntities():
+    objArr = []
+    objTypeArr = []
+        
+    objArr.append(player)
+    objTypeArr.append(RENDEROBJ_RIKU)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER1):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_MELEETIER1)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER2):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_MELEETIER2)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER3):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_MELEETIER3)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER4):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_MELEETIER4)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER1):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_RANGEDTIER1)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER2):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_RANGEDTIER2)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER3):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_RANGEDTIER3)
+
+    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER4):
+        objArr.append(e)
+        objTypeArr.append(RENDEROBJ_RANGEDTIER4)
+
+    for a in arrowSystem.arrows:
+        objArr.append(a)
+        objTypeArr.append(RENDEROBJ_ARROW)
+
+    # Render all entities ordered by pseudo Z: Provides the 2.5D / Pseudo 3D illusion
+    renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font)
 
 def renderGame():
     global gameSubstate
@@ -610,110 +742,88 @@ def renderGame():
     screen.fill(BLACK)
     
     if(gameSubstate==GAMEFADEIN):
-        # Render background
-        bgScale = (SCRW, SCRH)
-        scaledBg = pygame.transform.scale(background, bgScale)
-        screen.blit(scaledBg, (0,0))
-
+        renderBackground()
         screen.blit(blackBackground, (0,0))
 
     elif(gameSubstate==GAMEPLAY_PRELUDE):
-        bgScale = (SCRW, SCRH)
-        scaledBg = pygame.transform.scale(background, bgScale)
-        screen.blit(scaledBg, (0,0))
-
+        renderBackground()
         screen.blit(stage1Text,
                     (stageTextX, stageTextY))
 
+        renderAllEntities()
+
     elif(gameSubstate==GAMEPLAY_STAGE1):
-        # Render background
-        bgScale = (SCRW, SCRH)
-        scaledBg = pygame.transform.scale(background, bgScale)
-        screen.blit(scaledBg, (0,0))
+        renderBackground()
 
         # Draw the y boundaries
         if collisionsShown:
             pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
             pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
 
-        objArr = []
-        objTypeArr = []
+        renderAllEntities()
+            
+    elif(gameSubstate==GAMEPLAY_INTERLUDE1):
+        renderBackground()
+        screen.blit(stage2Text,
+                (stageTextX, stageTextY))
         
-        objArr.append(player)
-        objTypeArr.append(RENDEROBJ_RIKU)
-        #objTypeArr.append(RENDEROBJ_RANGEDTIER1)  
+        renderAllEntities()
+
+    elif(gameSubstate==GAMEPLAY_STAGE2):
+        renderBackground()
+        # Draw the y boundaries
         
-        objArr.append(tstEnemy1)
-        objTypeArr.append(RENDEROBJ_MELEETIER1)
+        if collisionsShown:
+            pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
+            pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
+        
+        renderAllEntities()
 
-        '''
-        objArr.append(tstEnemy1)
-        objTypeArr.append(RENDEROBJ_MELEETIER1)
-        objArr.append(tstEnemy2)
-        objTypeArr.append(RENDEROBJ_MELEETIER2)
-        objArr.append(tstEnemy3)
-        objTypeArr.append(RENDEROBJ_MELEETIER3)
-        objArr.append(tstEnemy4)
-        objTypeArr.append(RENDEROBJ_MELEETIER4)
-        '''
+    elif(gameSubstate==GAMEPLAY_INTERLUDE2):
+        renderBackground()
+        screen.blit(stage2Text,
+                (stageTextX, stageTextY))
+    elif(gameSubstate==GAMEPLAY_STAGE3):
+        pass
+    elif(gameSubstate==GAMEPLAY_INTERLUDE3):
+        renderBackground()
+        screen.blit(stage2Text,
+                (stageTextX, stageTextY))
+        
+    elif(gameSubstate==GAMEPLAY_PAUSE):
+        renderBackground()
 
-        objArr.append(shooter)
-        objTypeArr.append(RENDEROBJ_RANGEDTIER1)
+        renderAllEntities()
 
-        for a in arrowSystem.arrows:
-            objArr.append(a)
-            objTypeArr.append(RENDEROBJ_ARROW)
+        screen.blit(blackBackground,
+                    (0,0))    
 
-        renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font)
+        pauseText1 = font.render("PAUSED", False, WHITE)
+        screen.blit(pauseText1, 
+                    ((SCRW/2)-(pauseText1.get_width()/2), 
+                    (SCRH/2)-(pauseText1.get_height()/2)))
 
-        debugText = font.render("In development...", False, WHITE)
-        scaledDebugText = pygame.transform.scale_by(debugText, scaleFactor)
-        screen.blit(debugText, (10, SCRH-scaledDebugText.get_height()))
-
-        if paused:
-
-            #darkRect = pygame.rect.Rect(0, 0, SCRW, SCRH)
-            screen.blit(blackBackground,
-                        (0,0))    
-
-            pauseText1 = font.render("PAUSED", False, WHITE)
-            #scaledPausedText1 = pygame.transform.scale_by(pauseText1, scaleFactor)
-            screen.blit(pauseText1, 
-                        ((SCRW/2)-(pauseText1.get_width()/2), 
-                        (SCRH/2)-(pauseText1.get_height()/2)))
-
-            pauseText2 = font.render("Press 'r' to resume", False, WHITE)
-            #scaledPausedText2 = pygame.transform.scale_by(pauseText2, scaleFactor)
-            screen.blit(pauseText2, 
-                        ((SCRW/2)-(pauseText2.get_width()/2), 
-                        (SCRH/2)+(pauseText2.get_height()/(1.5))))
-            pauseText3 = font.render("Press 'q' to quit", False, WHITE)
-            screen.blit(pauseText3,
-                        ((SCRW/2)-(pauseText2.get_width()/2), 
-                        (SCRH/2)+(pauseText3.get_height()/(1.5) + pauseText2.get_height()/(1.5))))
-
-    # Render the player
-    #renderRiku(screen, player, rikuAnimationsData, collisionsShown, CAPTAIN_RENDER_CORRECTIONS)
-    #renderMeleeEnemy(screen, player, meleeTier1AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    #renderRangedEnemy(screen, player, rangedTier1AnimationsData, collisionsShown) #, ARCHER_RENDER_CORRECTIONS)
-
-    # Render test enemies
-    
-    #renderMeleeEnemy(screen, tstEnemy1, meleeTier1AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    #renderMeleeEnemy(screen, tstEnemy2, meleeTier2AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    #renderMeleeEnemy(screen, tstEnemy3, meleeTier3AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-    #renderMeleeEnemy(screen, tstEnemy4, meleeTier4AnimationsData, collisionsShown, SAMURAI_RENDER_CORRECTIONS)
-
-    #renderArrows(screen, arrowSystem, collisionsShown, leftArrowSprite, rightArrowSprite)
-
-    #for e in enemies:
-    #    renderMeleeEnemy(screen, e, 
-    #               meleeTier2AnimationsData, 
-    #               collisionsShown,
-    #               SAMURAI_RENDER_CORRECTIONS)
+        pauseText2 = font.render("Press 'r' to resume", False, WHITE)
+        screen.blit(pauseText2, 
+                    ((SCRW/2)-(pauseText2.get_width()/2), 
+                    (SCRH/2)+(pauseText2.get_height()/(1.5))))
+        pauseText3 = font.render("Press 'q' to quit", False, WHITE)
+        screen.blit(pauseText3,
+                    ((SCRW/2)-(pauseText2.get_width()/2), 
+                    (SCRH/2)+(pauseText3.get_height()/(1.5) + pauseText2.get_height()/(1.5))))
 
     # Update display
     pygame.display.flip()
+
+##############################################################################
+##############################################################################
+
+##############################################################################
+#########################     ENTRY POINT       ##############################
+##############################################################################
+
+running = True
+clock = pygame.time.Clock()
 
 # Main entry point
 if __name__ == '__main__':
@@ -752,6 +862,9 @@ if __name__ == '__main__':
         clock.tick(60)
     
     # Exit...
+    pygame.mixer.music.stop()
     pygame.quit()
     sys.exit()
 
+##############################################################################
+##############################################################################

@@ -1,8 +1,10 @@
 import pygame
 
+# This class represents the logical 
+# state of a given animation, without
+# holding any graphical data
 class Animation:
     def __init__(self, milisPerFrame, nFrames):
-        #self.sprites=sprites
         self.milisPerFrames = milisPerFrame
         self.nFrames=nFrames
         self.currentFrame = 0
@@ -17,10 +19,6 @@ class Animation:
     def reset(self):
         self.currentFrame=0
         self.startDelay=True
-
-    #def initializeTimer(self):
-    #    self.t0 = pygame.time.Clock().get_time() 
-    #    self.t1 = pygame.time.Clock().get_time()
 
     def update(self):
         self.t1 = pygame.time.get_ticks()

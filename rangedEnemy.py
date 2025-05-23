@@ -44,6 +44,9 @@ class RangedEnemy(Fighter):
 
     def __init__(self, xPos, yPos, hp, sp, maxHp, maxSp):
         super().__init__(xPos, yPos, hp, sp, maxHp, maxSp)
+        self.setHitbox(AABB(xPos, yPos, ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1]))
+        self.renderbox = AABB(xPos, yPos, ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1])
+
         self.currentActionState = ActionState.IDLE
         self.attackFinished = False
         self.attackCoolingDown = False
@@ -51,6 +54,20 @@ class RangedEnemy(Fighter):
         self.attackCooldownElapsed = 0 #pygame.time.get_ticks()
         self.lastAttack=0
         self.alreadyShot = False
+
+    def __init__(self, xPos, yPos, hp, sp, maxHp, maxSp, tier):
+        super().__init__(xPos, yPos, hp, sp, maxHp, maxSp)
+        self.setHitbox(AABB(xPos, yPos, ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1]))
+        self.renderbox = AABB(xPos, yPos, ARCHER_ANIM_DIMS[0][0], ARCHER_ANIM_DIMS[0][1])
+
+        self.currentActionState = ActionState.IDLE
+        self.attackFinished = False
+        self.attackCoolingDown = False
+        self.attackCooldownT0 = pygame.time.get_ticks()
+        self.attackCooldownElapsed = 0 #pygame.time.get_ticks()
+        self.lastAttack=0
+        self.alreadyShot = False
+        self.tier=tier
 
     def update(self, lowerYBound, upperYBound, leftBound, rightBound, arrowSystem):
         

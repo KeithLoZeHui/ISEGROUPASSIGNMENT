@@ -133,7 +133,6 @@ def revertRikuRenderCorrections(riku, renderCorrections, renderCorrectionXMask, 
     riku.renderbox.x -= renderCorrectionX
     riku.renderbox.y -= renderCorrectionY
 
-
 def applyMeleeEnemyRenderCorrections(meleeEnemy, renderCorrections, renderCorrectionXMask, renderCorrectionYMask):
     # Render correction: Given that the animations vary in resolutions,
     # it is necessary to align all of them around a common coordinate.
@@ -317,7 +316,6 @@ def renderArrow(screen, arrow, collisionsShown, leftArrowSprite, rightArrowSprit
             screen.blit(scaledArrow, (arrow.hitbox.x, arrow.hitbox.y))
 
 def renderArrows(screen, arrowSystem, collisionsShown, leftArrowSprite, rightArrowSprite):
-
     if arrowSystem.arrows != []:
         arrowArr = arrowSystem.arrows
 
@@ -376,7 +374,7 @@ def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collision
             renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown, font)
         elif(RENDEROBJ_MELEETIER3==objTypeArr[i]):
             renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER3], collisionsShown, font)
-        elif(RENDEROBJ_MELEETIER1==objTypeArr[i]):
+        elif(RENDEROBJ_MELEETIER4==objTypeArr[i]):
             renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER4], collisionsShown, font)
     
         elif(RENDEROBJ_RANGEDTIER1==objTypeArr[i]):

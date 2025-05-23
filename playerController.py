@@ -97,3 +97,6 @@ def updatePlayerControl(player : Riku, keyboardMap : list, enemies : list, leftB
         if(not keyboardMap[pygame.K_b]):
             player.forceActionState(ActionState.IDLE)
         return
+
+
+        

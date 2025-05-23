@@ -1,4 +1,5 @@
 from fighter import *
+from entityConstants import *
 
 class MeleeEnemy(Fighter):
     
@@ -11,11 +12,25 @@ class MeleeEnemy(Fighter):
 
     def __init__(self, xPos, yPos, hp, sp, maxHp, maxSp):
         super().__init__(xPos, yPos, hp, sp, maxHp, maxSp)
+        self.hitbox = AABB(xPos, yPos, SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
+        self.renderbox = AABB(xPos, yPos, SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
+
         self.currentActionState = ActionState.IDLE
         self.attackFinished = False
         self.attackCoolingDown = False
         self.attackCooldownT0 = pygame.time.get_ticks()
         self.attackCooldownElapsed = 0 #pygame.time.get_ticks()
         self.lastAttack=0
-    
-    pass
+        self.tier = 0
+
+    def __init__(self, xPos, yPos, hp, sp, maxHp, maxSp, tier):
+        super().__init__(xPos, yPos, hp, sp, maxHp, maxSp)
+        self.hitbox = AABB(xPos, yPos, SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
+        self.renderbox = AABB(xPos, yPos, SAMURAI_ANIM_DIMS[1][0], SAMURAI_ANIM_DIMS[1][1])
+        self.currentActionState = ActionState.IDLE
+        self.attackFinished = False
+        self.attackCoolingDown = False
+        self.attackCooldownT0 = pygame.time.get_ticks()
+        self.attackCooldownElapsed = 0 #pygame.time.get_ticks()
+        self.lastAttack=0
+        self.tier = tier
