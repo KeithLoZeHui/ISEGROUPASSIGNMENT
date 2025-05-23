@@ -13,6 +13,7 @@ from spritesheet import *
 from playerController import *
 from spriteLoader import*
 from entityRenderer import *
+from fire import Fire  # Import the Fire class
 
 SCRW = 1760
 SCRH = 990
@@ -91,6 +92,12 @@ pygame.init()
 
 screen = pygame.display.set_mode((SCRW, SCRH))
 pygame.display.set_caption("Fighter testing")
+
+# Create fire effects on both sides of the map
+fire_width = 100
+fire_height = 50
+left_fire = Fire(0, LOWERYBOUND - fire_height, fire_width, fire_height, damage=1, damage_interval=500)
+right_fire = Fire(SCRW - fire_width, LOWERYBOUND - fire_height, fire_width, fire_height, damage=1, damage_interval=500)
 
 # Creation of animation objects: These are just 
 # logical representations of each animation, without
@@ -221,6 +228,7 @@ clock = pygame.time.Clock()
 collisionsShown = False
 
 while running:
+    current_time = pygame.time.get_ticks()  # Get current time for fire damage
 
     ######## INPUT ########
 
@@ -258,7 +266,10 @@ while running:
     and (prevKeyboardMap[pygame.K_c] != keyboardMap[pygame.K_c])):
         collisionsShown = not collisionsShown;
 
-    # (Later include all the update logic in its own function)
+    # Update fire effects
+    all_entities = [player] + enemies
+    left_fire.update(current_time, all_entities)
+    right_fire.update(current_time, all_entities)
 
     # Update entity controllers
     updatePlayerControl(player, keyboardMap, enemies, 0, SCRW)
@@ -286,6 +297,10 @@ while running:
     if collisionsShown:
         pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
         pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
+
+    # Render fire effects
+    left_fire.render(screen)
+    right_fire.render(screen)
 
     # Render the player
     renderRiku(screen, player, rikuAnimationsData, collisionsShown, CAPTAIN_RENDER_CORRECTIONS)
