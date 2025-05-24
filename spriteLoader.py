@@ -19,11 +19,22 @@ BOSSRESOURCEDIR = "Boss"
 MELEERESOURCEDIR = "Melee"
 RANGEDRESOURCEDIR = "Ranged"
 
+INTROSLIDESDIR = "IntroSlideshow"
+NOFINTROSLIDES = 6
+
 # Background loading
 def loadBackground():
     backgroundLoc = os.path.join(BASERESOURCEDIR, "background.png")
     background = pygame.image.load(backgroundLoc).convert_alpha()
     return background
+
+def loadIntroSlideImages():
+    introSlides = []
+    for i in range(0, NOFINTROSLIDES):
+        slideLocation = os.path.join(BASERESOURCEDIR, INTROSLIDESDIR, f"Slide{i+1}.jpeg")
+        slide = pygame.image.load(slideLocation)
+        introSlides.append(slide)
+    return introSlides
 
 # Riku sprites loading 
 def loadRikuSprites():

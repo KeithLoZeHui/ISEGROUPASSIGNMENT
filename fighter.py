@@ -1,8 +1,10 @@
 from enum import Enum
 from animation import Animation
+
 import pygame
 import sys
 import os
+import copy
 
 # Action states
 class ActionState(Enum):
@@ -118,7 +120,12 @@ class Fighter:
         self.attackbox = AABB(xPos, yPos, 0, 0)
 
     def addAnimation(self, animation):
-        self.animations.append(Animation(animation.milisPerFrames, animation.nFrames))
+        self.animations.append(
+            Animation(
+                copy.deepcopy(animation.milisPerFrames), 
+                copy.deepcopy(animation.nFrames)
+                )
+            )
 
     def setAnimationAt(self, animation, animationID):
         self.animations[animationID] = animation
@@ -230,7 +237,7 @@ class Fighter:
             elif(Direction.EAST == self.lastDirection):
                 self.currentAnimationID = self.DEFAULT_RIDLEANIM_ID
                 self.animations[self.DEFAULT_RIDLEANIM_ID].update()
-
+        
         # Moving logic
         if(self.currentActionState==ActionState.MOVING):
 
@@ -360,7 +367,8 @@ class Fighter:
     
     def getCurrentAnimationFrame(self):
         return self.animations[self.currentAnimationID].getCurrentFrame()
-    
+
+
     # Abstract function, leave this here
     # for it to be implemented by RangedEnemy
     def shoot(self):

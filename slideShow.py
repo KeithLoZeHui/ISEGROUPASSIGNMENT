@@ -20,9 +20,19 @@ class SlideShow:
     DEFAULT_TYPINGSPEED = 100
     DEFAULT_FADESPEED = 4
 
+    LOCAL_SCALEFACTOR = 0.70
+
     def __init__(self, slides, font, screenRef):
         self.slideState = self.FADE_IN 
         self.slides = slides
+
+        # Scale down the images
+        for i in range(0, len(self.slides)):
+            nImage = self.slides[i].image
+            scaledImage = pygame.transform.scale_by(nImage, self.LOCAL_SCALEFACTOR)
+            self.slides[i].image = scaledImage
+
+
         self.currentSlideID = 0
         self.slidet0 = 0#pygame.time.get_ticks()
         self.slideElapsed = 0
@@ -123,12 +133,19 @@ class SlideShow:
             else:
                 self.alphaModulation -= self.DEFAULT_FADESPEED
     def renderImage(self, screen):
-        self.slides[self.currentSlideID].image.set_alpha(Decimal(self.alphaModulation))
+        #self.slides[self.currentSlideID].image.set_alpha(Decimal(self.alphaModulation))
+        slideImg = self.slides[self.currentSlideID].image
+        slideImg.set_alpha(Decimal(self.alphaModulation))
+        scaledSlideImg = pygame.transform.scale_by(slideImg, self.LOCAL_SCALEFACTOR);
+        
         screen.blit(
-            self.slides[self.currentSlideID].image, 
+            #self.slides[self.currentSlideID].image, 
+            #scaledSlideImg,
+            slideImg,
             (
                 (screen.get_width()/2)
-                - (self.slides[self.currentSlideID].image.get_width()/2)
+                - (slideImg.get_width()/2)#(scaledSlideImg.get_width()/2)
+                #- (self.slides[self.currentSlideID].image.get_width()/2)
                 , 
                 20
             )

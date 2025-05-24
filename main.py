@@ -10,12 +10,14 @@ from meleeEnemy import *
 from rangedEnemy import *
 from spritesheet import *
 from playerController import *
-from meleeAIs import *
+from meleeEnemyAI import *
 from rangedAIs import *
 from spriteLoader import*
 from entityRenderer import *
 from slideShow import *
 from enemyHandler import *
+
+import copy
 
 ##############################################################################
 #####################       RESOURCE LOADING          ########################
@@ -23,10 +25,10 @@ from enemyHandler import *
 
 SCRW = 1760
 SCRH = 990
-MAXHP = 100
-MAXSP = 100
-INITIALHP = MAXHP 
-INITIALSP = MAXSP
+RIKUMAXHP = 200
+RIKUMAXSP = 100
+INITIALHP = RIKUMAXHP 
+INITIALSP = RIKUMAXSP
 
 # Y boundaries of the fight 'arena'
 UPPERYBOUND = (SCRH/4)*3+40 
@@ -35,7 +37,7 @@ LOWERYBOUND = SCRH - 10
 RIKUINITIALX = (SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2)
 RIKUINITIALY = LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1]
 
-player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP, MAXHP, MAXSP)
+player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP, RIKUMAXHP, RIKUMAXSP)
 player.walkSpeed = 2
 player.runSpeed = 4
 
@@ -53,27 +55,55 @@ blackBackground.set_alpha(255/2)
 # Initialize mixer
 pygame.mixer.init()
 
-# Load music
-try:
-    pygame.mixer.music.load(os.path.join("resources", "Main_Menu.wav"))
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)  # Loop indefinitely
-except pygame.error as e:
-    print(f"Couldn't load music: {e}")
-    sys.exit()
+BGM_MAINMENU = "MainMenu.wav"
+BGM_INTROSLIDESHOW = "IntroSlideShow.wav"
+BGM_MIDGAME = "MidGame.wav"
 
+DEFAULT_BGM_VOLUME = 0.5
+bgmVolume = DEFAULT_BGM_VOLUME
 
+# Load and set background music
+def loadAndSetBGM(musicName):
+    try:
+        pygame.mixer.music.load(os.path.join("resources", musicName))
+        pygame.mixer.music.set_volume(bgmVolume)
+        pygame.mixer.music.play(-1)  # Loop indefinitely
+    except pygame.error as e:
+        print(f"Couldn't load music: {e}")
+        sys.exit()
+
+# Lower the BGM volume by 1%
+def fadeOutBGMVolume():
+    global bgmVolume
+    bgmVolume-= 0.01 if bgmVolume >= 0.0 else 0.0
+    pygame.mixer.music.set_volume(bgmVolume)
+
+def fadeInBGMVolume():
+    global bgmVolume
+    bgmVolume+= 0.01 if bgmVolume <= DEFAULT_BGM_VOLUME else 0.0
+    pygame.mixer.music.set_volume(bgmVolume)
 
 # Creation of animation objects: These are just
 # logical representations of each animation, without
 # any image data inside them. Their current index is then 
 # used to access the 'animationsData' array below 
 
-meleeAnimations = [Animation(a[0], a[1]) for a in MELEE_ANIMATIONS_SETUP]
-archerAnimations = [Animation(a[0], a[1]) for a in RANGED_ANIMATIONS_SETUP]
+meleeAnimations = [
+    Animation(
+        copy.deepcopy(a[0]), 
+        copy.deepcopy(a[1])
+    ) for a in MELEE_ANIMATIONS_SETUP]
+archerAnimations = [
+    Animation(
+        copy.deepcopy(a[0]), 
+        copy.deepcopy(a[1])
+    ) for a in RANGED_ANIMATIONS_SETUP]
 
 # Load the background picture
 background = loadBackground()
+
+# Load the intro slide show images
+introSlideshowImages = loadIntroSlideImages()
 
 font = pygame.font.Font(os.path.join("resources", "DoubleHomicide.ttf"), 36)
 japFont = pygame.font.Font(os.path.join("resources", "ipaexg.ttf"), 24)
@@ -151,6 +181,7 @@ def setKeyUp(keyID):
 
 holdingSpace = False
 
+
 ########################################################################
 
 # Application states
@@ -171,6 +202,9 @@ interfaceState = GAME
 MENUFADEIN = 0
 MENUIDLE = 1
 MENUFADEOUT = 2
+
+# Set main menu music as default
+loadAndSetBGM(BGM_MAINMENU)
 
 menuSubstate = MENUFADEIN
 
@@ -228,6 +262,7 @@ def updateMainMenu():
     global menuText1
     global titleLatin
     global alphaModulation
+    global bgmVolume
 
     #titleJapAlpha = 0
     #menuText1Alpha = 0
@@ -255,7 +290,10 @@ def updateMainMenu():
             interfaceState=SLIDESHOW_INTRO
             slideShowIntro.slideState=SlideShow.FADE_IN
             alphaModulation=255
+            bgmVolume = DEFAULT_BGM_VOLUME
+            loadAndSetBGM(BGM_INTROSLIDESHOW)
         else:
+            fadeOutBGMVolume()
             alphaModulation -=4    
             titleJap.set_alpha(alphaModulation)
             titleLatin.set_alpha(alphaModulation)
@@ -264,9 +302,16 @@ def updateMainMenu():
         print("titleJapAlpha = ", alphaModulation)
         print("menuText1Alpha = ", alphaModulation)
 
+def renderMainMenuBackground():
+    bgScale = (SCRW, SCRH)
+    scaledBg = pygame.transform.scale(introSlideshowImages[0], bgScale)
+    screen.blit(scaledBg, (0,0))
+
 def renderMainMenu():
 
     screen.fill(BLACK)
+
+    renderMainMenuBackground()
 
     # "百の剣"
     titleJapScaled = pygame.transform.scale_by(titleJap, (6, 6))
@@ -300,14 +345,14 @@ placeHolderImage.set_alpha(255)
 
 slides = [
     Slide(  
-         placeHolderImage, 
+         introSlideshowImages[0], 
           ["Japan, 1590 — The Final Fires of the Sengoku Era"],
           2500, 
           5000, 
           2500
     ),
     Slide(  
-        placeHolderImage, 
+        introSlideshowImages[1], 
         [
             "As the war-torn nation crawls toward unification under Toyotomi rule, two legendary clans ",
             "dominate the northern provinces: the dignified Momoyama Clan, based in their majestic ",
@@ -319,7 +364,7 @@ slides = [
         2500
     ),
     Slide(  
-        placeHolderImage, 
+        introSlideshowImages[2], 
         [
             "Amid this fragile peace stands Riku Yamada, a promising samurai of the Momoyama clan. ",
             "Raised in a time of bloodshed but trained in the arts of both war and diplomacy, ",
@@ -330,7 +375,7 @@ slides = [
         2500
     ),
     Slide(  
-        placeHolderImage, 
+        introSlideshowImages[3], 
         [
             "False letters, forged maps, and a whisper campaign frame Riku as a spy. In a ",
             "desperate bid to maintain political ties, the Momoyama clan turns him over ",
@@ -342,7 +387,7 @@ slides = [
         2500
     ),
     Slide(  
-        placeHolderImage, 
+        introSlideshowImages[4], 
         [
             "But the Kuronagi do not offer swift death. Instead, they sentence him to ",
             "the Trial of Hyaku-no-Ken — a forgotten rite once used to test those ",
@@ -354,7 +399,7 @@ slides = [
         2500
     ),
     Slide(  
-        placeHolderImage, 
+        introSlideshowImages[5], 
         [
             "His punishment is simple: ",
             "defeat one hundred warriors — blades forged from both clans."
@@ -450,10 +495,6 @@ STAGEFINISHDELAY = 2000
 enemyHandlerStage1 = EnemyHandler (
     screen,
     [
-        EnemySpawnBatch (
-            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
-            [-1, 1]
-        ),
         EnemySpawnBatch(
             [EnemyHandler.MELEE_TIER1, EnemyHandler.RANGED_TIER1],
             [-1, 1]
@@ -468,6 +509,25 @@ enemyHandlerStage1 = EnemyHandler (
         )
     ]
 )
+
+'''
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
+            [-1, 1]
+        ),
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2],
+            [-1, 1]
+        ),
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3],
+            [-1, 1]
+        ),
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4],
+            [-1, 1]
+        )
+'''
 
 arrowSystem = ArrowSystem()
 for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER1):
@@ -529,6 +589,91 @@ def updateStageXFallingText(textToRender, nextSubState):
                 stageTextSpeed-=stageTextAcceleration
                 stageTextY-=stageTextSpeed    
 
+def updateEnemySpawning(enemyHandler):
+
+    global stageFinishDelayElapsed
+    global stageFinishDelayT0
+    global gameSubstate 
+    global meleeAIs
+    global rangedAIs
+
+    nAliveEnemies = enemyHandler.countAliveEnemies()
+    if(0==nAliveEnemies):
+        if(enemyHandler.noMoreBatches):
+            # Start the delay timer
+            if(-1==stageFinishDelayT0):
+                stageFinishDelayT0=pygame.time.get_ticks()
+            
+            # Update the delay timer
+            stageFinishDelayElapsed = pygame.time.get_ticks() - stageFinishDelayT0
+
+            if(stageFinishDelayElapsed>=STAGEFINISHDELAY):                    
+                enemyHandler.removeDeadEnemies()
+                meleeAIs = []
+                rangedAIs = []
+
+                resetFallingTextState()
+                gameSubstate=GAMEPLAY_INTERLUDE1
+
+                # Reset the delay timer:
+                stageFinishDelayElapsed = 0
+                stageFinishDelayT0=-1 
+        else:
+            enemyHandler.spawnNextBatch(
+                0-SAMURAI_ANIM_DIMS[0][0], # left bound - enemy W 
+                SCRW, # right bound
+                UPPERYBOUND-SAMURAI_ANIM_DIMS[0][1],
+                LOWERYBOUND-ARCHER_ANIM_DIMS[0][1]
+            )
+
+            for t in range(EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER4+1): 
+                # Update melee animations
+                enemyHandler.applyFunctionToEnemyArray(t, updateMeleeEnemyAnimations)
+
+                # Update melee AIs
+                meleeAIs.append(
+                    MeleeEnemyAI(
+                        MeleeEnemyAI.DEFAULT_CHASEW_MIN,
+                        MeleeEnemyAI.DEFAULT_CHASEW_MAX,
+                        MeleeEnemyAI.DEFAULT_CHASEZ_MAX
+                    ))
+
+            # Update ranged animations
+            for t in range(EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER4):
+                enemyHandler.applyFunctionToEnemyArray(t, updateRangedEnemyAnimations)
+
+def checkPause():
+    global gameSubstate
+
+    # Check if pause button was pressed
+    if ((keyboardMap[pygame.K_p])
+    and (not prevKeyboardMap[pygame.K_p])):
+        gameSubstate=GAMEPLAY_PAUSE
+        return 
+    
+def checkCollisionsActivated():
+    global collisionsShown
+
+    # Check if collisions are activated
+    if (keyboardMap[pygame.K_c]
+    and (prevKeyboardMap[pygame.K_c] != keyboardMap[pygame.K_c])):
+        collisionsShown = not collisionsShown;
+
+meleeAIs = []
+rangedAIs = []
+
+def updateAIs(player, meleeEnemies, rangedEnemies, leftBound, rightBound):
+    global meleeAIs
+    global rangedAIs    
+
+    for i in range(0, len(meleeEnemies)):
+        meleeAIs[i].update(meleeEnemies[i], player, leftBound, rightBound)
+
+    for i in range(0, len(rangedEnemies)):
+        # dont do this yet, implement ranged AIs first ....    
+        #rangedAIs[i].update(rangedEnemies[i], player)
+        pass
+
 def updateGame():
 
     global collisionsShown
@@ -554,61 +699,32 @@ def updateGame():
     global stageFinishDelayElapsed
     global stageFinishDelayT0 
 
+    global bgmVolume
+
     if(gameSubstate==GAMEFADEIN):
         if(0>=alphaModulation):
             gameSubstate=GAMEPLAY_PRELUDE
+            bgmVolume=DEFAULT_BGM_VOLUME
+            loadAndSetBGM(BGM_MIDGAME)
         else:
+            fadeOutBGMVolume()
             alphaModulation-=4
             blackBackground.set_alpha(alphaModulation)
     
     elif(gameSubstate==GAMEPLAY_PRELUDE):
         updateStageXFallingText(stage1Text,GAMEPLAY_STAGE1)
+        
+        # Update just to show the idle animation
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
 
     elif(gameSubstate==GAMEPLAY_STAGE1):
 
-        # Check if pause button was pressed
-        if ((keyboardMap[pygame.K_p])
-            and (not prevKeyboardMap[pygame.K_p])):
-                gameSubstate=GAMEPLAY_PAUSE
-                return 
+        checkPause()
 
-        if (keyboardMap[pygame.K_c]
-        and (prevKeyboardMap[pygame.K_c] != keyboardMap[pygame.K_c])):
-            collisionsShown = not collisionsShown;
-
+        checkCollisionsActivated()
+        
         # Update enemy spawning 
-        nAliveEnemies = enemyHandlerStage1.countAliveEnemies()
-        if(0==nAliveEnemies):
-            if(enemyHandlerStage1.noMoreBatches):
-
-                # Start the delay timer
-                if(-1==stageFinishDelayT0):
-                    stageFinishDelayT0=pygame.time.get_ticks()
-
-                # Update the delay timer
-                stageFinishDelayElapsed = pygame.time.get_ticks() - stageFinishDelayT0
-
-                if(stageFinishDelayElapsed>=STAGEFINISHDELAY):                    
-                    enemyHandlerStage1.removeDeadEnemies()
-                    resetFallingTextState()
-                    gameSubstate=GAMEPLAY_INTERLUDE1
-
-                    # Reset the delay timer:
-                    stageFinishDelayElapsed = 0
-                    stageFinishDelayT0=-1 
-            else:
-                enemyHandlerStage1.spawnNextBatch(
-                    0-SAMURAI_ANIM_DIMS[0][0], # left bound - enemy W 
-                    SCRW, # right bound
-                    UPPERYBOUND-SAMURAI_ANIM_DIMS[0][1],
-                    LOWERYBOUND-SAMURAI_ANIM_DIMS[0][1]
-                )
-                enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER1, updateMeleeEnemyAnimations)
-                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER2, updateMeleeEnemyAnimations)
-                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER3, updateMeleeEnemyAnimations)
-                #enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.MELEE_TIER4, updateMeleeEnemyAnimations)
-
-                enemyHandlerStage1.applyFunctionToEnemyArray(EnemyHandler.RANGED_TIER1, updateRangedEnemyAnimations)
+        updateEnemySpawning(enemyHandlerStage1)
 
         meleeEnemies = enemyHandlerStage1.getAllMeleeEnemies()
         rangedEnemies = enemyHandlerStage1.getAllRangedEnemies()
@@ -623,12 +739,8 @@ def updateGame():
             SCRW
         )
 
-        # Update AIs
-        for e in meleeEnemies: #enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER1):
-            chasePlayer(player, e)
-
-        for e in rangedEnemies:
-            chasePlayer(player, e)
+        # Update AI controllers
+        updateAIs(player, meleeEnemies, rangedEnemies, 0, SCRW)
 
         # Update entity behaviour 
         player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)#, arrowSystem)
@@ -654,6 +766,9 @@ def updateGame():
 
     elif(gameSubstate==GAMEPLAY_INTERLUDE1):
         updateStageXFallingText(stage2Text,GAMEPLAY_STAGE2)
+        
+        # Update entity behaviour 
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
 
     elif(gameSubstate==GAMEPLAY_STAGE2):
 
@@ -682,7 +797,7 @@ def renderBackground():
     scaledBg = pygame.transform.scale(background, bgScale)
     screen.blit(scaledBg, (0,0))
 
-def renderAllEntities():
+def renderAllEntities(statusBarsShown):
     objArr = []
     objTypeArr = []
         
@@ -726,7 +841,7 @@ def renderAllEntities():
         objTypeArr.append(RENDEROBJ_ARROW)
 
     # Render all entities ordered by pseudo Z: Provides the 2.5D / Pseudo 3D illusion
-    renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font)
+    renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font, statusBarsShown)
 
 def renderGame():
     global gameSubstate
@@ -750,7 +865,7 @@ def renderGame():
         screen.blit(stage1Text,
                     (stageTextX, stageTextY))
 
-        renderAllEntities()
+        renderAllEntities(False)
 
     elif(gameSubstate==GAMEPLAY_STAGE1):
         renderBackground()
@@ -760,14 +875,14 @@ def renderGame():
             pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
             pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
 
-        renderAllEntities()
+        renderAllEntities(True)
             
     elif(gameSubstate==GAMEPLAY_INTERLUDE1):
         renderBackground()
         screen.blit(stage2Text,
                 (stageTextX, stageTextY))
         
-        renderAllEntities()
+        renderAllEntities(False)
 
     elif(gameSubstate==GAMEPLAY_STAGE2):
         renderBackground()
@@ -777,7 +892,7 @@ def renderGame():
             pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
             pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
         
-        renderAllEntities()
+        renderAllEntities(True)
 
     elif(gameSubstate==GAMEPLAY_INTERLUDE2):
         renderBackground()
@@ -793,7 +908,7 @@ def renderGame():
     elif(gameSubstate==GAMEPLAY_PAUSE):
         renderBackground()
 
-        renderAllEntities()
+        renderAllEntities(False)
 
         screen.blit(blackBackground,
                     (0,0))    
@@ -846,6 +961,8 @@ if __name__ == '__main__':
             ######## UPDATE ########
             slideShowIntro.update()
             if(slideShowIntro.finishedSlideShow):
+                #fadeOutBGMVolume()
+                #if(bgmVolume<=0):
                 interfaceState=GAME
                 gameSubstate=GAMEFADEIN    
             ######## RENDER ########

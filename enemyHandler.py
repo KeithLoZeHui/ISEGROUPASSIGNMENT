@@ -42,18 +42,18 @@ class EnemyHandler:
         # STATS FORMAT:
         self.enemyStats = [
             # Melee stats:
-            #[hp, dp, moveSpeed, blockMulti] 
-            [80, 10, 1.0, None],
-            [100, 20, 1.0, None],
-            [150, 20, 1.1, None],
-            [200, 25, 1.2, 0.65],
+            #[hp, sp, dp, moveSpeed, blockMulti] 
+            [80, 80, 10, 1.0, None],
+            [100, 100, 20, 1.0, None],
+            [150, 100, 20, 1.1, None],
+            [200, 100, 25, 1.2, 0.65],
             
             # Ranged stats:
-            # [hp, dp, moveSpeed, meleeSwing]
-            [60, 20, 0.9, None],
-            [90, 25, 0.9, None],
-            [110, 30, 1.0, None],
-            [150, 40, 1.1, 10]
+            # [hp, sp, dp, moveSpeed, meleeSwing]
+            [60, 80, 20, 0.9, None],
+            [90, 100, 25, 0.9, None],
+            [110, 100, 30, 1.0, None],
+            [150, 100, 40, 1.1, 10]
         ]
 
         self.enemies = [
@@ -97,7 +97,7 @@ class EnemyHandler:
             maxHp = newEnemyStats[0] 
             maxSp = newEnemyStats[1]
             tier = eTypeID if eTypeID <= self.MELEE_TIER4 else eTypeID-self.MELEE_TIER4
-
+            
             if eTypeID <= self.MELEE_TIER4:
                 self.enemies[eTypeID].append(
                     MeleeEnemy(

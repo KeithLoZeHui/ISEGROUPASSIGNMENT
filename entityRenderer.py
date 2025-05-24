@@ -242,7 +242,7 @@ def revertRangedEnemyRenderCorrections(rangedEnemy, renderCorrections, renderCor
     rangedEnemy.renderbox.x -= renderCorrectionX
     rangedEnemy.renderbox.y -= renderCorrectionY
 
-def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : bool, font):
+def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : bool, font, statusBarsShown : bool):
     
     renderEntityCollisionBoxes(screen, player, collisionsShown)
 
@@ -261,9 +261,10 @@ def renderRiku(screen, player : Riku, animationsData : list, collisionsShown : b
 
     revertRikuRenderCorrections(player, CAPTAIN_RENDER_CORRECTIONS, CAPTAIN_RENDER_CORRECTION_XMASK, CAPTAIN_RENDER_CORRECTION_YMASK)
 
-    renderStatusBars(screen, player, font)
+    if statusBarsShown:
+        renderStatusBars(screen, player, font)
 
-def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown, font): #, renderCorrections):
+def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown, font, statusBarsShown : bool): #, renderCorrections):
 
     renderEntityCollisionBoxes(screen, meleeEnemy, collisionsShown)
 
@@ -282,9 +283,10 @@ def renderMeleeEnemy(screen, meleeEnemy, animationsData, collisionsShown, font):
 
     revertMeleeEnemyRenderCorrections(meleeEnemy, SAMURAI_RENDER_CORRECTIONS) #, SAMURAI_RENDER_CORRECTION_XMASK, SAMURAI_RENDER_CORRECTION_YMASK) #renderCorrections)
 
-    renderStatusBars(screen, meleeEnemy, font)
+    if statusBarsShown:
+        renderStatusBars(screen, meleeEnemy, font)
 
-def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown, font):
+def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown, font, statusBarsShown : bool):
 
     # Scale and Render the character
     targetFrame = animationsData[rangedEnemy.currentAnimationID][rangedEnemy.getCurrentAnimationFrame()]
@@ -303,7 +305,8 @@ def renderRangedEnemy(screen, rangedEnemy, animationsData, collisionsShown, font
 
     revertRangedEnemyRenderCorrections(rangedEnemy, ARCHER_RENDER_CORRECTIONS, ARCHER_RENDER_CORRECTION_XMASK, ARCHER_RENDER_CORRECTION_YMASK)
 
-    renderStatusBars(screen, rangedEnemy, font)
+    if statusBarsShown:
+        renderStatusBars(screen, rangedEnemy, font)
 
 def renderArrow(screen, arrow, collisionsShown, leftArrowSprite, rightArrowSprite):
             renderArrowCollisionBox(screen, arrow, collisionsShown)
@@ -347,7 +350,7 @@ RENDEROBJ_RANGEDTIER4 = 8
 RENDEROBJ_ARROW = 9
 
 # Objects can be fighters, arrows, particles
-def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font):
+def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font, statusBarsShown):
     
     # Create a parallel list containing the 'pseudoZ' dimension: 
     zArr = [o.hitbox.pseudoZ for o in objArr]
@@ -366,25 +369,25 @@ def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collision
     for i in range(nObjs):
 
         if(RENDEROBJ_RIKU==objTypeArr[i]):
-            renderRiku(screen, objArr[i], animationAtlas[RENDEROBJ_RIKU], collisionsShown, font)
+            renderRiku(screen, objArr[i], animationAtlas[RENDEROBJ_RIKU], collisionsShown, font, statusBarsShown)
 
         elif(RENDEROBJ_MELEETIER1==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER1], collisionsShown, font)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER1], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_MELEETIER2==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown, font)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER2], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_MELEETIER3==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER3], collisionsShown, font)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER3], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_MELEETIER4==objTypeArr[i]):
-            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER4], collisionsShown, font)
+            renderMeleeEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_MELEETIER4], collisionsShown, font, statusBarsShown)
     
         elif(RENDEROBJ_RANGEDTIER1==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER1], collisionsShown, font)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER1], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_RANGEDTIER2==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER2], collisionsShown, font)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER2], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_RANGEDTIER3==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER3], collisionsShown, font)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER3], collisionsShown, font, statusBarsShown)
         elif(RENDEROBJ_RANGEDTIER4==objTypeArr[i]):
-            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER4], collisionsShown, font)
+            renderRangedEnemy(screen, objArr[i], animationAtlas[RENDEROBJ_RANGEDTIER4], collisionsShown, font, statusBarsShown)
 
         elif(RENDEROBJ_ARROW==objTypeArr[i]):
             renderArrow(screen, objArr[i], collisionsShown, animationAtlas[RENDEROBJ_ARROW][1], animationAtlas[RENDEROBJ_ARROW][0])
