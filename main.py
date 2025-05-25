@@ -11,11 +11,13 @@ from rangedEnemy import *
 from spritesheet import *
 from playerController import *
 from meleeEnemyAI import *
-from rangedAIs import *
+from rangedEnemyAI import *
 from spriteLoader import*
 from entityRenderer import *
 from slideShow import *
 from enemyHandler import *
+from splatterSystem import *
+from vignette import *
 
 import copy
 
@@ -25,8 +27,8 @@ import copy
 
 SCRW = 1760
 SCRH = 990
-RIKUMAXHP = 200
-RIKUMAXSP = 100
+RIKUMAXHP = 400
+RIKUMAXSP = 200
 INITIALHP = RIKUMAXHP 
 INITIALSP = RIKUMAXSP
 
@@ -37,7 +39,10 @@ LOWERYBOUND = SCRH - 10
 RIKUINITIALX = (SCRW/2)-(CAPTAIN_ANIM_DIMS[1][0]/2)
 RIKUINITIALY = LOWERYBOUND-CAPTAIN_ANIM_DIMS[1][1]
 
-player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP, RIKUMAXHP, RIKUMAXSP)
+RIKUDPMULTI = 1
+RIKUBLOCKMULTI = 0.5
+
+player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP, RIKUDPMULTI, RIKUBLOCKMULTI, RIKUMAXHP, RIKUMAXSP)
 player.walkSpeed = 2
 player.runSpeed = 4
 
@@ -52,22 +57,33 @@ pygame.display.set_caption("百の剣 | Hyaku-no-Ken (Hundred Blades)")
 blackBackground = pygame.Surface((SCRW, SCRH), flags=0, depth=32, masks=pygame.Color(BLACK))
 blackBackground.set_alpha(255/2)
 
+# Initialize vignettes:
+redVignette = generatePixelartVignette(SCRW, SCRH, (255, 50, 50))
+staminaEffect = pygame.Surface((SCRW, SCRH), masks=(50, 50, 50))
+
 # Initialize mixer
 pygame.mixer.init()
 
 BGM_MAINMENU = "MainMenu.wav"
 BGM_INTROSLIDESHOW = "IntroSlideShow.wav"
 BGM_MIDGAME = "MidGame.wav"
+BGM_OUTRO = "Outro.wav"
+lastBGM = ""
 
 DEFAULT_BGM_VOLUME = 0.5
 bgmVolume = DEFAULT_BGM_VOLUME
 
 # Load and set background music
 def loadAndSetBGM(musicName):
+    global lastBGM
+
+    if(musicName==lastBGM): return
+
     try:
         pygame.mixer.music.load(os.path.join("resources", musicName))
         pygame.mixer.music.set_volume(bgmVolume)
         pygame.mixer.music.play(-1)  # Loop indefinitely
+        lastBGM = musicName
     except pygame.error as e:
         print(f"Couldn't load music: {e}")
         sys.exit()
@@ -102,9 +118,12 @@ archerAnimations = [
 # Load the background picture
 background = loadBackground()
 
-# Load the intro slide show images
+# Load the slide show images
 introSlideshowImages = loadIntroSlideImages()
+outroSlideshowImages = loadOutroSlideImages()
 
+# Load the fonts used in the whole game
+# (Additional font for rendering japanese characters only)
 font = pygame.font.Font(os.path.join("resources", "DoubleHomicide.ttf"), 36)
 japFont = pygame.font.Font(os.path.join("resources", "ipaexg.ttf"), 24)
 
@@ -118,9 +137,15 @@ meleeTier3AnimationsData = loadMeleeSprites(3)
 meleeTier4AnimationsData = loadMeleeSprites(4)
 
 rangedTier1AnimationsData = loadRangedTier1Sprites()
+# LATER CHANGE THIS !!!!
+rangedTier2AnimationsData = rangedTier1AnimationsData
+rangedTier3AnimationsData = rangedTier1AnimationsData
+rangedTier4AnimationsData = rangedTier1AnimationsData
 
 rightArrowSprite = rangedTier1AnimationsData[(2*12)-2][0]
 leftArrowSprite = rangedTier1AnimationsData[(2*12)-1][0]
+
+splatterAnimationData = loadSplatterSprites()
 
 animationAtlas = [
     rikuAnimationsData,
@@ -131,16 +156,29 @@ animationAtlas = [
     meleeTier4AnimationsData,
 
     rangedTier1AnimationsData,
-    [],
-    [],
-    [],
+    rangedTier2AnimationsData,
+    rangedTier3AnimationsData,
+    rangedTier4AnimationsData,
 
-    [rightArrowSprite, leftArrowSprite]
+    [rightArrowSprite, leftArrowSprite],
+
+    [], # Final Boss animations
+
+    splatterAnimationData, 
 ]
 
+splatterSys = SplatterSystem(Animation(SPLATTER_ANIMATION_SETUP[0], SPLATTER_ANIMATION_SETUP[1]))
+
 # Attach animations in order !!
-for a in meleeAnimations:
-    player.addAnimation(a)
+def updatePlayerAnimations():
+    global player
+
+    player.animations = []
+    for a in meleeAnimations:
+        player.addAnimation(a)
+
+# Do this one as initialization
+updatePlayerAnimations()        
 
 def updateMeleeEnemyAnimations(meleeArr):
     for e in meleeArr:
@@ -151,6 +189,15 @@ def updateRangedEnemyAnimations(rangedArr):
     for e in rangedArr:
         for a in archerAnimations:
             e.addAnimation(a)
+
+arrowSystem = ArrowSystem()
+arrowSystem.addVulnerableEntity(player)
+
+def addAsArrowVulnerableEntities(enemyArr):
+    global arrowSystem
+
+    for e in enemyArr:
+        arrowSystem.addVulnerableEntity(e)
 
 ##############################################################################
 ##############################################################################
@@ -189,10 +236,14 @@ MAINMENU = 0
 SLIDESHOW_INTRO = 1
 GAME = 2
 PAUSE = 3
-SLIDESHOW_OUTRO = 4
+CONTROLS_SCREEN = 4
+SLIDESHOW_OUTRO = 5
+DEATHSCREEN = 6
 
-interfaceState = GAME
-#MAINMENU
+interfaceState = MAINMENU
+# Testing:
+#GAME
+#SLIDESHOW_OUTRO
 
 ##############################################################################
 ############################    MAIN MENU   ##################################
@@ -277,9 +328,6 @@ def updateMainMenu():
             titleLatin.set_alpha(alphaModulation)
             menuText1.set_alpha(alphaModulation)
 
-        print("titleJapAlpha = ",alphaModulation)
-        print("menuText1Alpha = ", alphaModulation)
-
     elif(menuSubstate==MENUIDLE):
         if(keyboardMap[pygame.K_s]):
             menuSubstate = MENUFADEOUT
@@ -299,13 +347,20 @@ def updateMainMenu():
             titleLatin.set_alpha(alphaModulation)
             menuText1.set_alpha(alphaModulation)
 
-        print("titleJapAlpha = ", alphaModulation)
-        print("menuText1Alpha = ", alphaModulation)
-
 def renderMainMenuBackground():
     bgScale = (SCRW, SCRH)
     scaledBg = pygame.transform.scale(introSlideshowImages[0], bgScale)
     screen.blit(scaledBg, (0,0))
+
+def renderRedVignette():
+    screen.blit(redVignette, (0,0))
+
+    staminaEffectAlpha = 0
+    if(player.sp < (player.maxSp/4)):
+        staminaEffectAlpha = 100 - ((player.sp / player.maxSp)*100)
+
+    staminaEffect.set_alpha(staminaEffectAlpha)
+    screen.blit(staminaEffect, (0,0), special_flags=pygame.BLEND_ADD)
 
 def renderMainMenu():
 
@@ -340,7 +395,8 @@ def renderMainMenu():
 ##############################################################################
 
 placeHolderImage = pygame.surface.Surface((400,400))
-placeHolderImage.fill((BLUE))
+placeHolderImageScaled = pygame.transform.scale_by(placeHolderImage, scaleFactor)
+placeHolderImage.fill((RED))
 placeHolderImage.set_alpha(255)
 
 slides = [
@@ -423,7 +479,7 @@ slideShowIntro = SlideShow(slides, font, screen)
 collisionsShown = False
 
 # Game state substates
-GAMEFADEIN = 0
+GAMEPLAY_GAMEFADEIN = 0
 GAMEPLAY_PRELUDE = 1
 GAMEPLAY_STAGE1 = 2
 GAMEPLAY_INTERLUDE1 = 3
@@ -432,14 +488,14 @@ GAMEPLAY_INTERLUDE2 = 5
 GAMEPLAY_STAGE3 = 6
 GAMEPLAY_INTERLUDE3 = 7
 GAMEPLAY_STAGE4 = 8
-GAMEPLAY_BOSSCUTSCENE = 9
-GAMEPLAY_BOSSFIGHT = 10
-GAMEPLAY_OUTRO = 11
-GAMEPLAY_PAUSE = 12
+GAMEPLAY_PAUSE = 9
 
-gameSubstate = GAMEFADEIN #GAMEFADEIN
+gameSubstate = GAMEPLAY_GAMEFADEIN
+# Testing:
+#GAMEPLAY_INTERLUDE3
+#GAMEPLAY_INTERLUDE1
 
-def handleGameInput():
+def handleKeyboardInput():
 
     global running
     global keyboardMap
@@ -473,6 +529,8 @@ def handleGameInput():
 
 stage1Text = font.render("STAGE I", False, WHITE)
 stage2Text = font.render("STAGE II", False, WHITE)
+stage3Text = font.render("STAGE III", False, WHITE)
+stage4Text = font.render("STAGE IV", False, WHITE)
 
 STAGETEXT_GOINGDOWN = 0
 STAGETEXT_STALL = 1
@@ -495,45 +553,192 @@ STAGEFINISHDELAY = 2000
 enemyHandlerStage1 = EnemyHandler (
     screen,
     [
+        # Batch 1
         EnemySpawnBatch(
-            [EnemyHandler.MELEE_TIER1, EnemyHandler.RANGED_TIER1],
-            [-1, 1]
+            [EnemyHandler.MELEE_TIER1],
+            [-1]
         ),
-        EnemySpawnBatch (
-            [EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER1],
-            [-1, 1]
-        ),
-        EnemySpawnBatch (
-            [EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER1, EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
-            [-1, 1, -1, 1]
-        )
-    ]
-)
-
-'''
+        # Batch 2
         EnemySpawnBatch (
             [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1],
             [-1, 1]
         ),
+        # Batch 3
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1, 
+            EnemyHandler.RANGED_TIER1],
+            [-1, 1, -1]
+        ),
+        # Batch 4
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1, 
+            EnemyHandler.MELEE_TIER1, EnemyHandler.RANGED_TIER1,
+            EnemyHandler.RANGED_TIER1],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 5
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1, 
+            EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER1,
+            EnemyHandler.RANGED_TIER1],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 6 (Mini-boss)
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER2],
+            [-1]
+        ),
+    ]
+)
+
+enemyHandlerStage2 = EnemyHandler (
+    screen,
+    [
+        # Batch 1
+        EnemySpawnBatch(
+            [EnemyHandler.MELEE_TIER2],
+            [-1]
+        ),
+        # Batch 2
         EnemySpawnBatch (
             [EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2],
             [-1, 1]
         ),
+        # Batch 3
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2, 
+            EnemyHandler.RANGED_TIER2],
+            [-1, 1, -1]
+        ),
+        # Batch 4
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2, 
+            EnemyHandler.MELEE_TIER2, EnemyHandler.RANGED_TIER2,
+            EnemyHandler.RANGED_TIER2],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 5
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2, 
+            EnemyHandler.MELEE_TIER2, EnemyHandler.MELEE_TIER2,
+            EnemyHandler.RANGED_TIER2],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 6 (Mini-boss)
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER3],
+            [-1]
+        ),        
+    ]
+)
+
+enemyHandlerStage3 = EnemyHandler (
+    screen,
+    [
+        # Batch 1
+        EnemySpawnBatch(
+            [EnemyHandler.MELEE_TIER3],
+            [-1]
+        ),
+        # Batch 2
         EnemySpawnBatch (
             [EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3],
             [-1, 1]
         ),
+        # Batch 3
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3, 
+            EnemyHandler.RANGED_TIER3],
+            [-1, 1, -1]
+        ),
+        # Batch 4
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3, 
+            EnemyHandler.MELEE_TIER3, EnemyHandler.RANGED_TIER3,
+            EnemyHandler.RANGED_TIER3],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 5
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3, 
+            EnemyHandler.MELEE_TIER3, EnemyHandler.MELEE_TIER3,
+            EnemyHandler.MELEE_TIER3],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 6 (Mini-boss)
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4],
+            [-1]
+        ),        
+    ]
+)
+
+enemyHandlerStage4 = EnemyHandler (
+    screen,
+    [
+        # Batch 1
+        EnemySpawnBatch(
+            [EnemyHandler.MELEE_TIER4],
+            [-1]
+        ),
+        # Batch 2
         EnemySpawnBatch (
             [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4],
             [-1, 1]
-        )
-'''
+        ),
+        # Batch 3
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4, 
+            EnemyHandler.RANGED_TIER4],
+            [-1, 1, -1]
+        ),
+        # Batch 4
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4, 
+            EnemyHandler.MELEE_TIER4, EnemyHandler.RANGED_TIER4,
+            EnemyHandler.RANGED_TIER4],
+            [-1, 1, -1, 1, -1]
+        ),
+        # Batch 5
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4, 
+            EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4],
+            [-1, 1, -1, 1]
+        ),
+        # Batch 5
+        EnemySpawnBatch (
+            [EnemyHandler.MELEE_TIER4, EnemyHandler.MELEE_TIER4],
+            [-1, 1]
+        ),
+    ]
+)
 
-arrowSystem = ArrowSystem()
-for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER1):
-    arrowSystem.addVulnerableEntity(e)
-arrowSystem.addVulnerableEntity(player)
+currentEnemyHandler = enemyHandlerStage1
 
+def resetGame():
+    global gameSubstate
+    global player
+    global meleeAIs
+    global rangedAIs
+
+    player = Riku(RIKUINITIALX, RIKUINITIALY, INITIALHP, INITIALSP,
+                  RIKUDPMULTI, RIKUBLOCKMULTI, 
+                  RIKUMAXHP, RIKUMAXSP)
+    player.walkSpeed = 2
+    player.runSpeed = 4
+
+    updatePlayerAnimations()
+
+    meleeAIs = []
+    rangedAIs = []
+
+    resetFallingTextState()
+
+    gameSubstate=GAMEPLAY_GAMEFADEIN
+    enemyHandlerStage1.resetState()
+    enemyHandlerStage2.resetState()
+    enemyHandlerStage3.resetState()
+    enemyHandlerStage4.resetState()
 
 def resetFallingTextState():
     global stageTextPhase
@@ -589,13 +794,15 @@ def updateStageXFallingText(textToRender, nextSubState):
                 stageTextSpeed-=stageTextAcceleration
                 stageTextY-=stageTextSpeed    
 
-def updateEnemySpawning(enemyHandler):
+def updateEnemySpawning(enemyHandler, nextState):
 
     global stageFinishDelayElapsed
     global stageFinishDelayT0
     global gameSubstate 
     global meleeAIs
     global rangedAIs
+    global arrowSystem
+    global player
 
     nAliveEnemies = enemyHandler.countAliveEnemies()
     if(0==nAliveEnemies):
@@ -609,11 +816,17 @@ def updateEnemySpawning(enemyHandler):
 
             if(stageFinishDelayElapsed>=STAGEFINISHDELAY):                    
                 enemyHandler.removeDeadEnemies()
+                arrowSystem.vulnerableEntities = [] # reset the vulnerable entities
+                arrowSystem.addVulnerableEntity(player)
                 meleeAIs = []
                 rangedAIs = []
 
+                # Reset player status
+                player.hp = player.maxHp
+                player.sp = player.maxSp
+
                 resetFallingTextState()
-                gameSubstate=GAMEPLAY_INTERLUDE1
+                gameSubstate=nextState
 
                 # Reset the delay timer:
                 stageFinishDelayElapsed = 0
@@ -626,9 +839,16 @@ def updateEnemySpawning(enemyHandler):
                 LOWERYBOUND-ARCHER_ANIM_DIMS[0][1]
             )
 
+            allEnemies = enemyHandler.getAllEnemyArraysConcat()
+            addAsArrowVulnerableEntities(allEnemies)
+
             for t in range(EnemyHandler.MELEE_TIER1, EnemyHandler.MELEE_TIER4+1): 
                 # Update melee animations
                 enemyHandler.applyFunctionToEnemyArray(t, updateMeleeEnemyAnimations)
+
+                # Update arrow system
+                #enemyHandler.applyFunctionToEnemyArray(t, addAsArrowVulnerableEntities)
+                # arrowSystem.addVulnerableEntity(enemies)
 
                 # Update melee AIs
                 meleeAIs.append(
@@ -638,19 +858,45 @@ def updateEnemySpawning(enemyHandler):
                         MeleeEnemyAI.DEFAULT_CHASEZ_MAX
                     ))
 
-            # Update ranged animations
-            for t in range(EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER4):
+            for t in range(EnemyHandler.RANGED_TIER1, EnemyHandler.RANGED_TIER4+1):
+                # Update ranged animations
                 enemyHandler.applyFunctionToEnemyArray(t, updateRangedEnemyAnimations)
+
+                # Update arrow system
+                #enemyHandler.applyFunctionToEnemyArray(t, addAsArrowVulnerableEntities)
+                # arrowSystem.addVulnerableEntity(t)
+
+                # Update ranged AIs
+                rangedAIs.append(
+                    RangedEnemyAI(
+                        RangedEnemyAI.DEFAULT_SHOOTW_MIN,
+                        RangedEnemyAI.DEFAULT_SHOOTW_MAX,
+                        RangedEnemyAI.DEFAULT_SHOOTZ_MAX
+                    ))
+
+def checkPlayerDeath():
+    global interfaceState
+    global deathScreenSubState
+
+    playerAnimation = player.animations[player.currentAnimationID]
+
+    if(ActionState.DYING==player.currentActionState
+    and playerAnimation.currentFrame==playerAnimation.nFrames-1):
+        interfaceState=DEATHSCREEN#GAMEPLAY_DEATH_SCREEN
+        deathScreenSubState=DEATHSCREEN_FADEIN
 
 def checkPause():
     global gameSubstate
+    global alphaModulation
+    global interfaceState
 
     # Check if pause button was pressed
-    if ((keyboardMap[pygame.K_p])
-    and (not prevKeyboardMap[pygame.K_p])):
-        gameSubstate=GAMEPLAY_PAUSE
+    if ((keyboardMap[pygame.K_p])):
+        alphaModulation=0
+        #gameSubstate=GAMEPLAY_PAUSE
+        interfaceState=PAUSE
         return 
-    
+
 def checkCollisionsActivated():
     global collisionsShown
 
@@ -662,17 +908,86 @@ def checkCollisionsActivated():
 meleeAIs = []
 rangedAIs = []
 
-def updateAIs(player, meleeEnemies, rangedEnemies, leftBound, rightBound):
+def updateMeleeAIs(player, meleeEnemies, leftBound, rightBound):
     global meleeAIs
-    global rangedAIs    
 
     for i in range(0, len(meleeEnemies)):
         meleeAIs[i].update(meleeEnemies[i], player, leftBound, rightBound)
 
-    for i in range(0, len(rangedEnemies)):
-        # dont do this yet, implement ranged AIs first ....    
-        #rangedAIs[i].update(rangedEnemies[i], player)
-        pass
+def updateRangedAIs(player, rangedEnemies, leftBound, rightBound):
+    global rangedAIs    
+
+    for i in range(0, len(rangedEnemies)):    
+        rangedAIs[i].update(rangedEnemies[i], player, leftBound, rightBound)
+
+def updateGameplayStage(enemyHandler, nextStage):
+
+    global player
+    global keyboardMap
+    global arrowSystem
+    global currentEnemyHandler
+
+    currentEnemyHandler = enemyHandler
+
+    checkPlayerDeath()
+
+    checkPause()
+
+    checkCollisionsActivated()
+        
+    # Update enemy spawning 
+    updateEnemySpawning(enemyHandler, nextStage)
+
+    meleeEnemies = enemyHandler.getAllMeleeEnemies()
+    rangedEnemies = enemyHandler.getAllRangedEnemies()
+    allEnemies = meleeEnemies+rangedEnemies
+
+    # Update player controller
+    updatePlayerControl(
+        player, 
+        keyboardMap, 
+        allEnemies,
+        0, 
+        SCRW
+    )
+
+    # Update AI controllers
+    updateMeleeAIs(player, meleeEnemies, 0, SCRW)
+    updateRangedAIs(player, rangedEnemies, 
+        0-(SAMURAI_ANIM_DIMS[0][0]*2), 
+        SCRW+(SAMURAI_ANIM_DIMS[0][0]*2))
+
+    # Update entity behaviour 
+    player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, splatterSys)#, arrowSystem)
+
+    # Update melee enemy behaviour
+    for e in meleeEnemies:
+        e.update(
+            LOWERYBOUND, 
+            UPPERYBOUND, 
+            0-(SAMURAI_ANIM_DIMS[0][0]*2), 
+            SCRW+(SAMURAI_ANIM_DIMS[0][0]*2),
+            splatterSys)
+
+    # Update ranged enemy behaviour
+    for e in rangedEnemies:
+        e.update(
+            LOWERYBOUND, 
+            UPPERYBOUND, 
+            0-(SAMURAI_ANIM_DIMS[0][0]*2), 
+            SCRW+(SAMURAI_ANIM_DIMS[0][0]*2),
+            arrowSystem, 
+            splatterSys)
+
+    arrowSystem.update(0, SCRW, splatterSys)
+    splatterSys.update()
+
+def checkGameVictory():
+    pass
+
+VICTORYDELAY = 2000
+victoryDelayElapsed = 0
+victoryDelayT0 = -1
 
 def updateGame():
 
@@ -701,7 +1016,10 @@ def updateGame():
 
     global bgmVolume
 
-    if(gameSubstate==GAMEFADEIN):
+    global victoryDelayElapsed
+    global victoryDelayT0
+
+    if(gameSubstate==GAMEPLAY_GAMEFADEIN):
         if(0>=alphaModulation):
             gameSubstate=GAMEPLAY_PRELUDE
             bgmVolume=DEFAULT_BGM_VOLUME
@@ -713,126 +1031,99 @@ def updateGame():
     
     elif(gameSubstate==GAMEPLAY_PRELUDE):
         updateStageXFallingText(stage1Text,GAMEPLAY_STAGE1)
-        
+        loadAndSetBGM(BGM_MIDGAME)
+
         # Update just to show the idle animation
-        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, splatterSys)
 
     elif(gameSubstate==GAMEPLAY_STAGE1):
-
-        checkPause()
-
-        checkCollisionsActivated()
-        
-        # Update enemy spawning 
-        updateEnemySpawning(enemyHandlerStage1)
-
-        meleeEnemies = enemyHandlerStage1.getAllMeleeEnemies()
-        rangedEnemies = enemyHandlerStage1.getAllRangedEnemies()
-        allEnemies = meleeEnemies+rangedEnemies
-
-        # Update player controller
-        updatePlayerControl(
-            player, 
-            keyboardMap, 
-            allEnemies,
-            0, 
-            SCRW
-        )
-
-        # Update AI controllers
-        updateAIs(player, meleeEnemies, rangedEnemies, 0, SCRW)
-
-        # Update entity behaviour 
-        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)#, arrowSystem)
-
-        # Update melee enemy behaviour
-        for e in meleeEnemies:
-            e.update(
-                LOWERYBOUND, 
-                UPPERYBOUND, 
-                0-(SAMURAI_ANIM_DIMS[0][0]*2), 
-                SCRW+(SAMURAI_ANIM_DIMS[0][0]*2))
-
-        # Update ranged enemy behaviour
-        for e in rangedEnemies:
-            e.update(
-                LOWERYBOUND, 
-                UPPERYBOUND, 
-                0-(SAMURAI_ANIM_DIMS[0][0]*2), 
-                SCRW+(SAMURAI_ANIM_DIMS[0][0]*2),
-                arrowSystem)
-
-        arrowSystem.update(0, SCRW)
+        updateGameplayStage(enemyHandlerStage1, GAMEPLAY_INTERLUDE1)
 
     elif(gameSubstate==GAMEPLAY_INTERLUDE1):
         updateStageXFallingText(stage2Text,GAMEPLAY_STAGE2)
-        
+        loadAndSetBGM(BGM_MIDGAME)
+
         # Update entity behaviour 
-        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW)
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, splatterSys)
 
     elif(gameSubstate==GAMEPLAY_STAGE2):
-
-        pass
+        updateGameplayStage(enemyHandlerStage2, GAMEPLAY_INTERLUDE2)
+    
     elif(gameSubstate==GAMEPLAY_INTERLUDE2):
+        updateStageXFallingText(stage3Text,GAMEPLAY_STAGE3)
+        loadAndSetBGM(BGM_MIDGAME)
         
-        pass
+        # Update entity behaviour 
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, splatterSys)   
+
     elif(gameSubstate==GAMEPLAY_STAGE3):
-        
-        pass
+        updateGameplayStage(enemyHandlerStage3, GAMEPLAY_INTERLUDE3)
+
     elif(gameSubstate==GAMEPLAY_INTERLUDE3):
+        updateStageXFallingText(stage4Text,GAMEPLAY_STAGE4)
+        loadAndSetBGM(BGM_MIDGAME)
         
-        pass
-    elif(gameSubstate==GAMEPLAY_PAUSE):
-        if ((keyboardMap[pygame.K_r])
-        and (not prevKeyboardMap[pygame.K_p])):
-            gameSubstate=GAMEPLAY_STAGE1
-        else:
-            if ((keyboardMap[pygame.K_q])
-            and (not prevKeyboardMap[pygame.K_q])):
-                interfaceState = MAINMENU
-                menuSubstate = MENUFADEIN
+        # Update entity behaviour 
+        player.update(LOWERYBOUND, UPPERYBOUND, 0, SCRW, splatterSys)
+    
+    elif(gameSubstate==GAMEPLAY_STAGE4):
+        updateGameplayStage(enemyHandlerStage4, GAMEPLAY_STAGE4)
+        if(enemyHandlerStage4.noMoreBatches):
+            if(victoryDelayT0!=-1):
+                print(victoryDelayElapsed)
+                victoryDelayElapsed = pygame.time.get_ticks() - victoryDelayT0
+                if(VICTORYDELAY<=victoryDelayElapsed):
+                    interfaceState = SLIDESHOW_OUTRO
+                    resetGame()
+                    victoryDelayT0 = -1
+                    victoryDelayElapsed = 0
+            else:
+                # Start victory delay timer
+                victoryDelayT0 = pygame.time.get_ticks()
 
 def renderBackground():
     bgScale = (SCRW, SCRH)
     scaledBg = pygame.transform.scale(background, bgScale)
     screen.blit(scaledBg, (0,0))
 
-def renderAllEntities(statusBarsShown):
+def renderAllEntities(statusBarsShown, enemyHandler):
+    global arrowSystem
+
     objArr = []
     objTypeArr = []
         
     objArr.append(player)
     objTypeArr.append(RENDEROBJ_RIKU)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER1):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER1):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_MELEETIER1)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER2):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER2):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_MELEETIER2)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER3):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER3):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_MELEETIER3)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.MELEE_TIER4):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.MELEE_TIER4):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_MELEETIER4)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER1):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.RANGED_TIER1):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_RANGEDTIER1)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER2):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.RANGED_TIER2):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_RANGEDTIER2)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER3):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.RANGED_TIER3):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_RANGEDTIER3)
 
-    for e in enemyHandlerStage1.getEnemyArray(EnemyHandler.RANGED_TIER4):
+    for e in enemyHandler.getEnemyArray(EnemyHandler.RANGED_TIER4):
         objArr.append(e)
         objTypeArr.append(RENDEROBJ_RANGEDTIER4)
 
@@ -840,8 +1131,22 @@ def renderAllEntities(statusBarsShown):
         objArr.append(a)
         objTypeArr.append(RENDEROBJ_ARROW)
 
+    for s in splatterSys.splatterArr:
+        objArr.append(s)
+        objTypeArr.append(RENDEROBJ_SPLATTER)
+
     # Render all entities ordered by pseudo Z: Provides the 2.5D / Pseudo 3D illusion
     renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font, statusBarsShown)
+
+def renderGameplayStage():
+        renderBackground()
+
+        # Draw the y boundaries
+        if collisionsShown:
+            pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
+            pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
+        
+        renderAllEntities(True, currentEnemyHandler)
 
 def renderGame():
     global gameSubstate
@@ -856,7 +1161,7 @@ def renderGame():
     # Clear screen
     screen.fill(BLACK)
     
-    if(gameSubstate==GAMEFADEIN):
+    if(gameSubstate==GAMEPLAY_GAMEFADEIN):
         renderBackground()
         screen.blit(blackBackground, (0,0))
 
@@ -865,73 +1170,275 @@ def renderGame():
         screen.blit(stage1Text,
                     (stageTextX, stageTextY))
 
-        renderAllEntities(False)
+        renderAllEntities(False, enemyHandlerStage1)
 
     elif(gameSubstate==GAMEPLAY_STAGE1):
-        renderBackground()
-
-        # Draw the y boundaries
-        if collisionsShown:
-            pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
-            pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
-
-        renderAllEntities(True)
+        renderGameplayStage()
             
     elif(gameSubstate==GAMEPLAY_INTERLUDE1):
         renderBackground()
         screen.blit(stage2Text,
                 (stageTextX, stageTextY))
         
-        renderAllEntities(False)
+        renderAllEntities(False, enemyHandlerStage2)
 
     elif(gameSubstate==GAMEPLAY_STAGE2):
-        renderBackground()
-        # Draw the y boundaries
-        
-        if collisionsShown:
-            pygame.draw.line(screen, WHITE, (0, UPPERYBOUND), (SCRW, UPPERYBOUND))
-            pygame.draw.line(screen, WHITE, (0, LOWERYBOUND), (SCRW, LOWERYBOUND))
-        
-        renderAllEntities(True)
+        renderGameplayStage()
 
     elif(gameSubstate==GAMEPLAY_INTERLUDE2):
         renderBackground()
-        screen.blit(stage2Text,
+        screen.blit(stage3Text,
                 (stageTextX, stageTextY))
+
     elif(gameSubstate==GAMEPLAY_STAGE3):
-        pass
+        renderGameplayStage()
+
     elif(gameSubstate==GAMEPLAY_INTERLUDE3):
         renderBackground()
-        screen.blit(stage2Text,
+        screen.blit(stage4Text,
                 (stageTextX, stageTextY))
-        
-    elif(gameSubstate==GAMEPLAY_PAUSE):
-        renderBackground()
 
-        renderAllEntities(False)
-
-        screen.blit(blackBackground,
-                    (0,0))    
-
-        pauseText1 = font.render("PAUSED", False, WHITE)
-        screen.blit(pauseText1, 
-                    ((SCRW/2)-(pauseText1.get_width()/2), 
-                    (SCRH/2)-(pauseText1.get_height()/2)))
-
-        pauseText2 = font.render("Press 'r' to resume", False, WHITE)
-        screen.blit(pauseText2, 
-                    ((SCRW/2)-(pauseText2.get_width()/2), 
-                    (SCRH/2)+(pauseText2.get_height()/(1.5))))
-        pauseText3 = font.render("Press 'q' to quit", False, WHITE)
-        screen.blit(pauseText3,
-                    ((SCRW/2)-(pauseText2.get_width()/2), 
-                    (SCRH/2)+(pauseText3.get_height()/(1.5) + pauseText2.get_height()/(1.5))))
+    elif(gameSubstate==GAMEPLAY_STAGE4):
+        renderGameplayStage()
 
     # Update display
     pygame.display.flip()
 
 ##############################################################################
 ##############################################################################
+
+##############################################################################
+#########################     PAUSE SCREEN       #############################
+##############################################################################
+
+def updatePause():
+    global alphaModulation
+    global interfaceState
+    global menuSubstate
+
+    if ((keyboardMap[pygame.K_r])):
+        interfaceState=GAME
+        #gameSubstate=GAMEPLAY_STAGE1
+    else:
+        if ((keyboardMap[pygame.K_q])):
+            resetGame()
+            loadAndSetBGM(BGM_MAINMENU)
+            #fadeOutBGMVolume()
+            interfaceState = MAINMENU
+            menuSubstate = MENUFADEIN
+
+def renderPause():
+    global screen
+    global blackBackground
+
+    screen.fill(BLACK)
+
+    renderGameplayStage()
+
+    blackBackground.set_alpha(255/2)
+    screen.blit(blackBackground,
+                (0,0))    
+
+    pauseText1 = font.render("PAUSED", False, WHITE)
+    pauseText1.set_alpha(255)
+    screen.blit(pauseText1, 
+        ((SCRW/2)-(pauseText1.get_width()/2), 
+        (SCRH/2)-(pauseText1.get_height()/2)))
+
+    pauseText2 = font.render("Press 'r' to resume", False, WHITE)
+    pauseText2.set_alpha(255)
+    screen.blit(pauseText2, 
+        ((SCRW/2)-(pauseText2.get_width()/2), 
+        (SCRH/2)+(pauseText2.get_height()/(1.5))))
+    
+    pauseText3 = font.render("Press 'q' to quit", False, WHITE)
+    pauseText3.set_alpha()
+    screen.blit(pauseText3,
+        ((SCRW/2)-(pauseText2.get_width()/2), 
+        (SCRH/2)+(pauseText3.get_height()/(1.5) + pauseText2.get_height()/(1.5))))
+    
+    pygame.display.flip()
+
+
+##############################################################################
+##############################################################################
+
+##############################################################################
+#########################     DEATH SCREEN       #############################
+##############################################################################
+
+DEATHSCREEN_FADEIN = 0
+DEATHSCREEN_IDLE = 1
+DEATHSCREEN_FADEOUT = 2
+
+deathScreenSubState = DEATHSCREEN_FADEIN
+deathScreenNextState = DEATHSCREEN
+
+deathScreenTitle = font.render("RIKU HAS FALLEN", False, RED)
+deathScreenText1 = font.render("'r' : Restart", False, WHITE)
+deathScreenText2 = font.render("'q' : Quit to Main Menu", False, WHITE)
+
+def updateDeathScreen():
+    global interfaceState
+    global gameSubstate
+    global menuSubstate
+    global deathScreenSubState
+    global deathScreenNextState
+    global alphaModulation
+    global keyboardMap
+
+    if(deathScreenSubState==DEATHSCREEN_FADEIN
+    or deathScreenSubState==DEATHSCREEN_IDLE):
+        pass
+        #updateGameplayStage(currentEnemyHandler, GAMEPLAY_STAGE1)
+
+    if(DEATHSCREEN_FADEIN==deathScreenSubState):
+        if(alphaModulation>=255):
+            alphaModulation=255
+            deathScreenSubState=DEATHSCREEN_IDLE
+        else:
+            fadeOutBGMVolume()
+            alphaModulation+=4
+    
+    elif(DEATHSCREEN_IDLE==deathScreenSubState):
+        # Restart game
+        if(keyboardMap[pygame.K_r]):
+            deathScreenNextState = GAME
+            gameSubstate = GAMEPLAY_GAMEFADEIN
+            deathScreenSubState=DEATHSCREEN_FADEOUT
+            resetGame()
+        if(keyboardMap[pygame.K_q]):
+            deathScreenNextState = MAINMENU
+            menuSubstate = MENUFADEIN
+            deathScreenSubState=DEATHSCREEN_FADEOUT
+            resetGame()
+
+    elif(DEATHSCREEN_FADEOUT==deathScreenSubState):
+        if(alphaModulation<=0):    
+            alphaModulation=0
+            #deathScreenSubState=DEATHSCREEN_FADEIN
+            interfaceState=deathScreenNextState
+            if(GAME==deathScreenNextState):
+                alphaModulation = 255
+        else:
+            alphaModulation-=4
+
+def renderDeathScreen():
+    global blackBackground
+    global alphaModulation
+
+    screen.fill(BLACK)
+
+    # Render on the background, but dont update
+    if(deathScreenSubState==DEATHSCREEN_FADEIN
+    or deathScreenSubState==DEATHSCREEN_IDLE):
+        renderGameplayStage()
+
+    blackBackground.set_alpha(alphaModulation)
+    screen.blit(blackBackground, (0,0))
+
+    scaledDeathScreenTitle = pygame.transform.scale_by(deathScreenTitle, 2)
+    scaledDeathScreenTitle.set_alpha(alphaModulation)
+    titleYPosition = (SCRH/2)-(scaledDeathScreenTitle.get_height()/2) 
+    screen.blit(scaledDeathScreenTitle,
+        ((SCRW/2)-(scaledDeathScreenTitle.get_width()/2),
+        (SCRH/2)-(scaledDeathScreenTitle.get_height()/2))
+    )
+
+    deathScreenText1.set_alpha(alphaModulation)
+    screen.blit(deathScreenText1,
+        (
+            (SCRW/2)-(deathScreenText1.get_width()/2),
+            (titleYPosition+scaledDeathScreenTitle.get_height()
+            + 30)
+        )
+    )
+
+    deathScreenText2.set_alpha(alphaModulation)
+    screen.blit(deathScreenText2,
+        (
+            (SCRW/2)-(deathScreenText2.get_width()/2),
+            (titleYPosition+(2*scaledDeathScreenTitle.get_height())
+            + 30)
+        )
+    )
+
+    pygame.display.flip()
+
+##############################################################################
+##############################################################################
+
+##############################################################################
+#########################     OUTRO SLIDESHOW       ##########################
+##############################################################################
+
+outroSlideshowSlides = [
+    Slide(
+        outroSlideshowImages[0],
+        ["Riku's loyalty was proven by the wrath of his blade in the arena.",
+        "He defeated all of the 100 warriors, with the elegance of a Sakura,",
+        "and the power of a Kami"],
+        2500, 
+        5000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[1],
+        ["After his victory, he uncovers scattered truths"],
+        2500, 
+        5000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[2],
+        ["A Kuronagi defector speaks of internal unrest."],
+        2500, 
+        5000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[3],
+        ["A Momoyama priestess leaves behind hidden scrolls ",
+        "in the ruins beneath the arena."],
+        2500, 
+        5000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[4],
+        ["An old comrade returns",
+        "— not as an ally, but as a final blade to be crossed."],
+        2500, 
+        5000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[5],
+        ["Riku pieces together a conspiracy: ",
+        "his betrayal was orchestrated by a secret faction within Momoyama—samurai ",
+        "who seek to overthrow the peace and plunge Kyoto back into war, ",
+        "seizing power under the chaos."],
+        2500, 
+        10000, 
+        2500
+    ),
+    Slide(
+        outroSlideshowImages[6],
+        ["But to stop them,", 
+        "Riku must emerge from the hundred blades not as a broken man…",
+        "…but as a symbol of unbending truth."
+        ],
+        2500, 
+        8000, 
+        2500
+    ), 
+]
+
+slideShowOutro = SlideShow(outroSlideshowSlides, font, screen)
+
+##############################################################################
+##############################################################################
+
 
 ##############################################################################
 #########################     ENTRY POINT       ##############################
@@ -944,7 +1451,6 @@ clock = pygame.time.Clock()
 if __name__ == '__main__':
 
     #global interfaceState
-
     while running:
         
         if(interfaceState==MAINMENU):
@@ -960,21 +1466,62 @@ if __name__ == '__main__':
             handleMainMenuInput()
             ######## UPDATE ########
             slideShowIntro.update()
-            if(slideShowIntro.finishedSlideShow):
+            if(
+                slideShowIntro.finishedSlideShow
+                or (keyboardMap[pygame.K_s]) # Skip key
+            ):
                 #fadeOutBGMVolume()
                 #if(bgmVolume<=0):
                 interfaceState=GAME
-                gameSubstate=GAMEFADEIN    
+                gameSubstate=GAMEPLAY_GAMEFADEIN    
             ######## RENDER ########
             slideShowIntro.render(screen, font)
 
         if(interfaceState==GAME):   
             ######## INPUT ########
-            handleGameInput()
+            handleKeyboardInput()
             ######## UPDATE ########
             updateGame()
             ######## RENDER ########
             renderGame()
+        elif(interfaceState==PAUSE):
+            ######## INPUT ########
+            handleKeyboardInput()
+            ######## UPDATE ########
+            updatePause()
+            ######## RENDER ########
+            renderPause()
+        if(interfaceState==DEATHSCREEN):
+            ######## INPUT ########
+            handleKeyboardInput()
+            ######## UPDATE ########
+            updateDeathScreen()
+            ######## RENDER ########
+            renderDeathScreen()
+
+        if(interfaceState==SLIDESHOW_OUTRO):
+            ######## INPUT ########
+            handleMainMenuInput()
+            ######## UPDATE ########
+            slideShowOutro.update()
+            if(slideShowOutro.currentSlideID==0
+            and slideShowOutro.slideState==slideShowOutro.FADE_IN):
+                loadAndSetBGM(BGM_OUTRO)
+
+            if(
+                slideShowOutro.finishedSlideShow
+                or (keyboardMap[pygame.K_s]) # Skip key
+            ):
+                #fadeOutBGMVolume()
+                #if(bgmVolume<=0):
+                resetGame()
+                loadAndSetBGM(BGM_MAINMENU)
+                interfaceState=MAINMENU
+                gameSubstate=GAMEPLAY_GAMEFADEIN    
+                menuSubstate=MENUFADEIN
+            ######## RENDER ########
+            slideShowOutro.render(screen, font)
+
         # Control frame rate
         clock.tick(60)
     

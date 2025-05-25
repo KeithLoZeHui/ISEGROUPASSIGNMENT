@@ -72,6 +72,15 @@ RANGED_ANIMATIONS_SETUP = [
     (1000, 1), # Arrow (not an animation)
 ]
 
+SPLATTER_ANIMATION_SETUP = (200/5, 5)
+
+#################   SPLATTER CONSTANTS    #################
+
+SPLATTER_ANIM_DIMS_RAW = (26, 20)
+SPLATTER_ANIM_DIMS = (
+    SPLATTER_ANIM_DIMS_RAW[0]*scaleFactor,
+    SPLATTER_ANIM_DIMS_RAW[1]*scaleFactor
+)
 
 ############# CAPTAIN (RIKU/PLAYER) CONSTANTS #############
 
@@ -176,6 +185,8 @@ ARROW_RENDER_YCORRECTION = (ARCHER_ANIM_DIMS[10][1]/2)-(ARROW_DIMENSIONS[1])
 #]
 
 #print(ARCHER_RENDER_CORRECTIONS)
+
+############# RENDER CORRECTION MASKS ############# 
 
 CAPTAIN_RENDER_CORRECTION_XMASK = [
     # Idle

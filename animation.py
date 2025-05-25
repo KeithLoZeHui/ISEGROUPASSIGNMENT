@@ -8,6 +8,7 @@ class Animation:
         self.milisPerFrames = milisPerFrame
         self.nFrames=nFrames
         self.currentFrame = 0
+        self.previousFrame = 0
         self.t0=pygame.time.get_ticks()
         self.t1=pygame.time.get_ticks()
         
@@ -18,22 +19,25 @@ class Animation:
 
     def reset(self):
         self.currentFrame=0
+        self.previousFrame=0
         self.startDelay=True
 
     def update(self):
         self.t1 = pygame.time.get_ticks()
         elapsed = self.t1-self.t0
-
         if(elapsed>=self.milisPerFrames):
             self.t0=pygame.time.get_ticks() # reset timer
             if(self.currentFrame==(self.nFrames-1)):
-                self.currentFrame = 0
-                self.startDelay = True
+                self.reset()
+                # self.currentFrame = 0
+                # self.startDelay = True
             else:
                 if(not self.startDelay):
                     self.currentFrame+=1
                 else:
                     self.startDelay = False
+        else:
+            self.previousFrame = self.currentFrame
 
     def getCurrentFrame(self):
         return self.currentFrame

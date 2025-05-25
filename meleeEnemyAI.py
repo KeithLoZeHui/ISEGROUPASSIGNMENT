@@ -28,8 +28,6 @@ class MeleeEnemyAI:
             or meleeBody.currentActionState==ActionState.ATTACKING1
             or meleeBody.currentActionState==ActionState.ATTACKING2
             or meleeBody.currentActionState==ActionState.ATTACKING3 
-            or meleeBody.currentActionState==ActionState.CHARGESHOOT
-            or meleeBody.currentActionState==ActionState.SHOOT       
         ):
             return
 
@@ -43,7 +41,7 @@ class MeleeEnemyAI:
                 self.currentState = self.ATTACKING
 
         elif(self.ATTACKING == self.currentState):
-
+            
             dx = getDx(player, meleeBody)
             dz = getDz(player, meleeBody) 
             if (abs(dx) > self.maxChaseW 

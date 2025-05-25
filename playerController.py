@@ -30,7 +30,8 @@ def updatePlayerControl(player : Riku, keyboardMap : list, enemies : list, leftB
     # Test hurt switch
     if keyboardMap[pygame.K_h]:
         if(not player.currentActionState==ActionState.HURTING):
-            player.hurt(1)
+            pass
+            #player.hurt(1, splatterSys)
         return
 
     #if(player.currentActionState==ActionState.ACST_HURTING):

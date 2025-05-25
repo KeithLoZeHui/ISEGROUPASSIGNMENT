@@ -1,5 +1,6 @@
 from enum import Enum
 from animation import Animation
+from entityConstants import *
 
 import pygame
 import sys
@@ -93,7 +94,47 @@ class Fighter:
     DEFAULT_RDEATHANIM_ID = 10 # Right death
     DEFAULT_LDEATHANIM_ID = 11 # Left death
 
-    def __init__(self, xPos, yPos, hp, sp, maxHp, maxSp):
+    RATTACK1ANIM_ID = 11+1 # Right attack 1
+    LATTACK1ANIM_ID = RATTACK1ANIM_ID+1 # Left attack 1
+    RATTACK2ANIM_ID = LATTACK1ANIM_ID+1 # Right attack 2
+    LATTACK2ANIM_ID = RATTACK2ANIM_ID+1 # Left attack 2
+    RATTACK3ANIM_ID = LATTACK2ANIM_ID+1 # Right attack 3 
+    LATTACK3ANIM_ID = RATTACK3ANIM_ID+1 # Left attack 3
+
+    RSHOOTCHARGEANIM_ID = LATTACK3ANIM_ID+1 
+    LSHOOTCHARGEANIM_ID = RSHOOTCHARGEANIM_ID+1
+    RSHOOTANIM_ID = LSHOOTCHARGEANIM_ID+1
+    LSHOOTANIM_ID = RSHOOTANIM_ID+1
+    RARROW_ID = LSHOOTANIM_ID+1
+    LARROW_ID = RARROW_ID+1
+
+    ATTACK2_COOLDOWN = 1000/4
+    ATTACK3_COOLDOWN = 300 #1000/2
+
+    CHARGEDELAY = 1000
+    POSTSHOOTDELAY = 500
+    SHOOT_COOLDOWN = 1000
+
+    SP_RECOVERY_PERUPDATE = 0.5
+
+    ATTACK2_SPDRAIN = 15
+    ATTACK3_SPDRAIN = 35
+
+    ATTACK1_DP = 15
+    ATTACK2_DP = 25
+    ATTACK3_DP = 55
+
+    DEF_ARROW_DP = 30
+
+    ATTACK1_KNOCKBACK = 10
+    ATTACK2_KNOCKBACK = 20
+    ATTACK3_KNOCKBACK = 60
+
+    ATTACK1_HITFRAME = 2
+    ATTACK2_HITFRAME = 3
+    ATTACK3_HITFRAME = 2
+    
+    def __init__(self, xPos, yPos, hp, sp, dpMulti, blockMulti, maxHp, maxSp):
         #self.xPos = xPos
         #self.yPos = yPos
         
@@ -102,6 +143,8 @@ class Fighter:
         self.lastDirection = Direction.EAST
         self.hp=hp
         self.sp=sp
+        self.dpMulti = dpMulti
+        self.blockMulti = blockMulti
         self.maxHp=maxHp
         self.maxSp=maxSp
         self.walkSpeed = Fighter.DEFAULT_WALK_SPEED
@@ -114,6 +157,8 @@ class Fighter:
 
         self.isRunning = False
         self.isExhausted = False
+
+        self.enemies = []
 
         self.hitbox = AABB(xPos, yPos, 0, 0)
         self.renderbox = AABB(xPos, yPos, 0, 0)
@@ -155,7 +200,6 @@ class Fighter:
         ):
             self.renderbox.x += xtranslate
             self.hitbox.x += xtranslate
-
 
     def forceYTranslate(self, ytranslate, lowerYBound, upperYBound):
         # Update y position
@@ -227,8 +271,43 @@ class Fighter:
 
     # lowerBound, upperBound -> vertical movement bounds
     # leftBound, rightBound -> horizontal movement bounds
-    def update(self, lowerYBound, upperYBound, leftBound, rightBound):
-        
+    def update(self, lowerYBound, upperYBound, leftBound, rightBound, splatterSystem):
+
+        if(self.attackCoolingDown):
+            self.attackCooldownElapsed = (pygame.time.get_ticks() 
+            - self.attackCooldownT0)
+
+            if(2==self.lastAttack):
+                if(self.attackCooldownElapsed >= self.ATTACK2_COOLDOWN):
+                    self.attackCoolingDown = False
+                    self.attackCooldownElapsed = 0
+            elif(3==self.lastAttack):
+                if(self.attackCooldownElapsed >= self.ATTACK3_COOLDOWN):
+                    self.attackCoolingDown = False
+                    self.attackCooldownElapsed = 0
+            elif(4==self.lastAttack):
+                if(self.attackCooldownElapsed >= self.CHARGEDELAY):
+                    self.attackCoolingDown = False
+                    self.attackCooldownElapsed = 0
+                    self.lastAttack=5 # 5 is for shooting
+                # Return to avoid other events modifying the action state
+                else: return    
+            elif(5==self.lastAttack):
+                if(self.attackCooldownElapsed >= self.POSTSHOOTDELAY):
+                    self.attackCoolingDown = False
+                    self.attackCooldownElapsed = 0
+                else: return
+
+        # Update stamina recovery
+        if(self.currentActionState == ActionState.IDLE
+           or self.currentActionState == ActionState.MOVING and not self.isRunning):
+            if(self.sp < self.maxSp):
+                self.sp += self.SP_RECOVERY_PERUPDATE
+            else:
+                # Force this to avoid SP to be bigger
+                # than its maximum value
+                self.sp = self.maxSp        
+
         # Idle logic
         if(self.currentActionState==ActionState.IDLE):
             if(Direction.WEST == self.lastDirection):
@@ -257,23 +336,39 @@ class Fighter:
             self.animations[self.currentAnimationID].update()
 
             # Update x position
+            nextX = self.hitbox.x + self.xVelocity
             if(
-                (self.hitbox.x + self.xVelocity >= leftBound)
-                and (self.hitbox.x + self.xVelocity <= rightBound - self.hitbox.w) 
+                (nextX > leftBound)
+                and (nextX < rightBound - self.hitbox.w) 
             ):
                 self.renderbox.x += self.xVelocity
                 self.hitbox.x += self.xVelocity
-
-            #scaledHeight = self.hitbox.h*scaleFactor;
+            
+            # Correct X collisions:
+            if not (self.hitbox.x > leftBound):
+                self.renderbox.x = leftBound
+                self.hitbox.x = leftBound
+            elif not (self.hitbox.x < rightBound - self.hitbox.w):
+                self.renderbox.x = rightBound - self.hitbox.w
+                self.hitbox.x = rightBound - self.hitbox.w
 
             # Update y position
+            nextY = self.hitbox.y + self.yVelocity
             if(
-                (self.hitbox.y + self.yVelocity >= (upperYBound-self.hitbox.h))
-                and (self.hitbox.y + self.yVelocity <= lowerYBound-self.hitbox.h)
+                (nextY > (upperYBound-self.hitbox.h))
+                and (nextY < lowerYBound-self.hitbox.h)
             ):
                 self.renderbox.y += self.yVelocity
                 self.hitbox.y += self.yVelocity
                 self.hitbox.pseudoZ += self.yVelocity
+
+            # Correct Y collisions
+            if not (self.hitbox.y > (upperYBound-self.hitbox.h)):
+                self.renderbox.y = (upperYBound-self.hitbox.h)
+                self.hitbox.y = (upperYBound-self.hitbox.h)
+            elif not (self.hitbox.y < lowerYBound-self.hitbox.h):
+                self.renderbox.y = lowerYBound-self.hitbox.h
+                self.hitbox.y = lowerYBound-self.hitbox.h
 
         # Blocking logic
         if(self.currentActionState==ActionState.BLOCKING):
@@ -319,6 +414,93 @@ class Fighter:
             if(not currentAnimation.currentFrame==currentAnimation.nFrames-1):
                 self.animations[self.currentAnimationID].update()
         
+        if(self.currentActionState==ActionState.ATTACKING1):
+            if(Direction.WEST == self.lastDirection):
+                self.currentAnimationID = self.LATTACK1ANIM_ID
+            elif(Direction.EAST == self.lastDirection):
+                self.currentAnimationID = self.RATTACK1ANIM_ID
+            
+            currentAnimation = self.animations[self.currentAnimationID]
+
+            collisionResult = self.checkAttackCollision(
+                self.enemies, leftBound, rightBound, 
+                self.ATTACK1_DP*self.dpMulti, # Make sure to implement the dpMulti
+                self.ATTACK1_KNOCKBACK,
+                self.ATTACK1_HITFRAME, splatterSystem)
+
+            self.attackFinished = (
+                currentAnimation.currentFrame == currentAnimation.nFrames-1
+            ) 
+
+            #self.attackFinished = self.attackFinished or collisionResult 
+
+            # If last frame passed, go back to idle state
+            if(self.attackFinished):
+                self.currentActionState = ActionState.IDLE
+                self.attackbox = AABB(0,0,0,0)
+            else:
+                self.animations[self.currentAnimationID].update()
+
+        if(self.currentActionState==ActionState.ATTACKING2):
+            if(Direction.WEST == self.lastDirection):
+                self.currentAnimationID = self.LATTACK2ANIM_ID
+            elif(Direction.EAST == self.lastDirection):
+                self.currentAnimationID = self.RATTACK2ANIM_ID
+            
+            currentAnimation = self.animations[self.currentAnimationID]
+
+            collisionResult = self.checkAttackCollision(
+                self.enemies, leftBound, rightBound, 
+                self.ATTACK2_DP*self.dpMulti, # Make sure to implement the dpMulti 
+                self.ATTACK2_KNOCKBACK,
+                self.ATTACK2_HITFRAME, splatterSystem)
+
+            self.attackFinished = (
+                currentAnimation.currentFrame == currentAnimation.nFrames-1
+            ) 
+
+            #self.attackFinished = self.attackFinished or collisionResult 
+
+            # If last frame passed, go back to idle state
+            if(self.attackFinished):
+                self.currentActionState = ActionState.IDLE
+                self.attackCoolingDown = True
+                self.attackbox = AABB(0,0,0,0)
+                self.attackCooldownT0 = pygame.time.get_ticks() 
+                self.attackFinished=False
+            else:
+                self.animations[self.currentAnimationID].update()
+
+        if(self.currentActionState==ActionState.ATTACKING3):
+            if(Direction.WEST == self.lastDirection):
+                self.currentAnimationID = self.LATTACK3ANIM_ID
+            elif(Direction.EAST == self.lastDirection):
+                self.currentAnimationID = self.RATTACK3ANIM_ID
+            
+            currentAnimation = self.animations[self.currentAnimationID]
+
+            collisionResult = self.checkAttackCollision(
+                self.enemies, leftBound, rightBound, 
+                self.ATTACK3_DP*self.dpMulti, # Make sure to implement the dpMulti 
+                self.ATTACK3_KNOCKBACK,
+                self.ATTACK3_HITFRAME, splatterSystem)
+
+            self.attackFinished = (
+                currentAnimation.currentFrame == currentAnimation.nFrames-1
+            ) 
+
+            #self.attackFinished = self.attackFinished or collisionResult 
+
+            # If last frame passed, go back to idle state
+            if(self.attackFinished):
+                self.currentActionState = ActionState.IDLE
+                self.attackCoolingDown = True
+                self.attackbox = AABB(0,0,0,0)
+                self.attackCooldownT0 = pygame.time.get_ticks() 
+                self.attackFinished=False
+            else:
+                self.animations[self.currentAnimationID].update()
+
         '''
         if(self.currentActionState==ActionState.ACST_JUMPING):
             
@@ -343,7 +525,7 @@ class Fighter:
         self.currentActionState = ActionState.JUMPING
         self.yVelocity = -self.DEFAULT_JUMP_SPEED
 
-    def hurt(self, damage):
+    def hurt(self, damage, splatterSystem):
         self.currentActionState = ActionState.HURTING
 
         if damage < self.hp:
@@ -351,6 +533,13 @@ class Fighter:
         else:
             self.die()
             #self.currentActionState = ActionState.DYING
+        # Generate splatter
+
+        splatterSystem.generateSplatter(
+            self.hitbox.x+(self.hitbox.w/2),
+            self.hitbox.y+(self.hitbox.h/2)-(SPLATTER_ANIM_DIMS[1]/2),
+            self
+        )
 
         self.animations[self.currentAnimationID].reset()
 
@@ -367,6 +556,179 @@ class Fighter:
     
     def getCurrentAnimationFrame(self):
         return self.animations[self.currentAnimationID].getCurrentFrame()
+
+    # Check attack collision (naive approach, but still ok)
+    # 'hitFrame' -> the animation frame from where the 
+    # # damage is applied in case of collision  
+    def checkAttackCollision(self, enemies, 
+                             leftBound, rightBound,
+                             damage, knockback,
+                             hitFrame, splatterSystem):
+        
+        selfCurrentAnimation = self.animations[self.currentAnimationID]
+        for e in enemies:
+            if(self.attackbox.overlaps(e.hitbox)
+            and e.currentActionState != ActionState.DYING
+            and selfCurrentAnimation.currentFrame == hitFrame
+            # Avoid the extra damage within sub-fram time:
+            and selfCurrentAnimation.previousFrame!=selfCurrentAnimation.currentFrame
+            ):                
+                # Apply damage
+
+                # Check if the target is blocking
+                if(ActionState.BLOCKING==e.currentActionState
+                   
+                   # Ensure the blockign and attacking directions 
+                   # are opposite:
+                   and (   
+                        (self.lastDirection==Direction.EAST
+                        and e.lastDirection==Direction.WEST) 
+                        or
+                        (self.lastDirection==Direction.WEST
+                        and e.lastDirection==Direction.EAST)
+                   )
+                ):  
+                    # Diminish the damage by the block multi
+                    e.hurt(damage*e.blockMulti, splatterSystem)
+                    print("Blocked multi applied")
+                else:    
+                    # Apply normal damage
+                    e.hurt(damage, splatterSystem)
+                    print("Normal damage")
+
+                # Apply knockback
+                if(self.lastDirection == Direction.WEST):
+                    e.forceXTranslate(
+                        -knockback,#-self.ATTACK1_KNOCKBACK, 
+                        leftBound, 
+                        rightBound)
+
+                elif(self.lastDirection == Direction.EAST):
+                    e.forceXTranslate(
+                        knockback, #self.ATTACK1_KNOCKBACK, 
+                        leftBound, 
+                        rightBound)
+                
+                return True # If collided
+        
+        return False # If not collided
+
+    # SP drain: 0
+    # DP dealt: 15 
+    def attack1(self, enemies : list, leftBound, rightBound):
+        self.enemies = enemies
+        
+        if(self.attackCoolingDown): return
+
+        self.lastAttack=1
+
+        self.currentActionState = ActionState.ATTACKING1
+        
+        if(Direction.WEST == self.lastDirection):
+            self.currentAnimationID = self.LATTACK1ANIM_ID
+        elif(Direction.EAST == self.lastDirection):
+            self.currentAnimationID = self.RATTACK1ANIM_ID
+
+        self.animations[self.currentAnimationID].reset()
+
+        # Generate attack box        
+        attackBoxW = self.hitbox.w/2
+        attackBoxH = self.hitbox.h
+        attackBoxX = (self.hitbox.x-attackBoxW
+            if (self.lastDirection == Direction.WEST)
+            else self.hitbox.x+self.hitbox.w)
+        attackBoxY = self.hitbox.y
+        
+        self.attackbox = AABB(attackBoxX, attackBoxY, attackBoxW, attackBoxH)
+
+        '''
+        self.checkAttackCollision(
+            enemies, leftBound, rightBound, 
+            self.ATTACK1_DP, self.ATTACK1_KNOCKBACK,
+            self.ATTACK1_HITFRAME)
+        '''
+
+    # SP drain: 15
+    # DP dealt: 25
+    def attack2(self, enemies : list, leftBound, rightBound):
+        self.enemies = enemies
+        
+        if(self.attackCoolingDown): return
+        
+        # Check and substract stamina
+        if(self.sp < self.ATTACK2_SPDRAIN):
+            return
+
+        self.sp -= self.ATTACK2_SPDRAIN 
+
+        self.lastAttack=2
+
+
+        self.currentActionState = ActionState.ATTACKING2
+
+        if(Direction.WEST == self.lastDirection):
+            self.currentAnimationID = self.LATTACK2ANIM_ID
+        elif(Direction.EAST == self.lastDirection):
+            self.currentAnimationID = self.RATTACK2ANIM_ID
+
+        self.animations[self.currentAnimationID].reset()
+
+        # Generate attack box
+        attackBoxW = self.hitbox.w/2
+        attackBoxH = self.hitbox.h
+        attackBoxX = (self.hitbox.x-attackBoxW
+            if (self.lastDirection == Direction.WEST)
+            else self.hitbox.x+self.hitbox.w)
+        attackBoxY = self.hitbox.y
+        
+        self.attackbox = AABB(attackBoxX, attackBoxY, attackBoxW, attackBoxH)
+        
+        '''
+        self.checkAttackCollision(
+            enemies, leftBound, rightBound, 
+            self.ATTACK2_DP, self.ATTACK2_KNOCKBACK,
+            self.ATTACK2_HITFRAME)
+        '''
+
+    # SP drain: 35
+    # DP dealt: 55
+    def attack3(self, enemies : list, leftBound, rightBound):
+        self.enemies = enemies
+
+        if(self.attackCoolingDown): return
+
+        # Check and substract stamina
+        if(self.sp < self.ATTACK3_SPDRAIN):
+            return
+
+        self.sp -= self.ATTACK3_SPDRAIN 
+
+        self.lastAttack=3
+
+        self.currentActionState = ActionState.ATTACKING3
+
+        if(Direction.WEST == self.lastDirection):
+            self.currentAnimationID = self.LATTACK3ANIM_ID
+        elif(Direction.EAST == self.lastDirection):
+            self.currentAnimationID = self.RATTACK3ANIM_ID
+
+        self.animations[self.currentAnimationID].reset()
+
+        # Generate attack box        
+        attackBoxW = self.hitbox.w/2
+        attackBoxH = self.hitbox.h
+        attackBoxX = (self.hitbox.x-attackBoxW
+            if (self.lastDirection == Direction.WEST)
+            else self.hitbox.x+self.hitbox.w)
+        attackBoxY = self.hitbox.y
+        
+        self.attackbox = AABB(attackBoxX, attackBoxY, attackBoxW, attackBoxH)
+        '''
+        self.checkAttackCollision(
+            enemies, leftBound, rightBound, 
+            self.ATTACK3_DP, self.ATTACK3_KNOCKBACK,
+            self.ATTACK3_HITFRAME)
+        '''
 
 
     # Abstract function, leave this here

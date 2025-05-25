@@ -20,7 +20,11 @@ MELEERESOURCEDIR = "Melee"
 RANGEDRESOURCEDIR = "Ranged"
 
 INTROSLIDESDIR = "IntroSlideshow"
+OUTROSLIDESDIR = "OutroSlideshow"
 NOFINTROSLIDES = 6
+NOFOUTROSLIDES = 7
+
+SPLATTERFILE = "Blood.png"
 
 # Background loading
 def loadBackground():
@@ -35,6 +39,25 @@ def loadIntroSlideImages():
         slide = pygame.image.load(slideLocation)
         introSlides.append(slide)
     return introSlides
+
+def loadOutroSlideImages():
+    outroSlides = []
+    for i in range(0, NOFOUTROSLIDES):
+        slideLocation = os.path.join(BASERESOURCEDIR, OUTROSLIDESDIR, f"Slide{i+1}.jpg")
+        slide = pygame.image.load(slideLocation)
+        outroSlides.append(slide)
+    return outroSlides
+
+def loadSplatterSprites():
+    splatterLoc = os.path.join(BASERESOURCEDIR, SPLATTERFILE)
+    splatterSprites = getSpritesheetAsSpriteArr(
+            splatterLoc,
+            SPLATTER_ANIM_DIMS_RAW[0],
+            SPLATTER_ANIM_DIMS_RAW[1],
+            SPLATTER_ANIM_DIMS_RAW[0]*5,
+            SPLATTER_ANIM_DIMS_RAW[1]
+    )
+    return splatterSprites
 
 # Riku sprites loading 
 def loadRikuSprites():

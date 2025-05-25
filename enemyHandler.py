@@ -43,17 +43,17 @@ class EnemyHandler:
         self.enemyStats = [
             # Melee stats:
             #[hp, sp, dp, moveSpeed, blockMulti] 
-            [80, 80, 10, 1.0, None],
-            [100, 100, 20, 1.0, None],
-            [150, 100, 20, 1.1, None],
-            [200, 100, 25, 1.2, 0.65],
+            [80, 80, 0.25, 1.0, None],
+            [100, 100, 0.50, 1.0, None],
+            [150, 100, 0.75, 1.1, None],
+            [200, 100, 1, 1.2, 0.65],
             
             # Ranged stats:
             # [hp, sp, dp, moveSpeed, meleeSwing]
-            [60, 80, 20, 0.9, None],
-            [90, 100, 25, 0.9, None],
-            [110, 100, 30, 1.0, None],
-            [150, 100, 40, 1.1, 10]
+            [60, 80, 0.25, 0.9, None],
+            [90, 100, 0.50, 0.9, None],
+            [110, 100, 0.75, 1.0, None],
+            [150, 100, 1, 1.1, 10]
         ]
 
         self.enemies = [
@@ -65,7 +65,19 @@ class EnemyHandler:
             [], # Tier 1 ranged
             [], # Tier 2 ranged 
             [], # Tier 3 ranged
-            []  # Tier 4 ranged 
+            [], # Tier 4 ranged
+
+            [] # FINAL BOSS 
+        ]
+
+    def resetState(self):
+        self.spawnedEnemyCount = 0
+        self.currentBatchID = 0
+        self.noMoreBatches = False
+        self.enemies = [
+            [],[],[],[], 
+            [],[],[],[],
+            []   
         ]
 
     # Returns the enemy instances in this batch 
@@ -94,6 +106,8 @@ class EnemyHandler:
 
             hp = newEnemyStats[0] 
             sp = newEnemyStats[1]
+            dpMulti = newEnemyStats[2]
+            blockMulti = newEnemyStats[3]
             maxHp = newEnemyStats[0] 
             maxSp = newEnemyStats[1]
             tier = eTypeID if eTypeID <= self.MELEE_TIER4 else eTypeID-self.MELEE_TIER4
@@ -105,6 +119,8 @@ class EnemyHandler:
                         yPos,
                         hp, 
                         sp,
+                        dpMulti,
+                        blockMulti,
                         maxHp,
                         maxSp,
                         tier
@@ -117,6 +133,8 @@ class EnemyHandler:
                         yPos,
                         hp,
                         sp,
+                        dpMulti,
+                        blockMulti,
                         maxHp,
                         maxSp,
                         tier

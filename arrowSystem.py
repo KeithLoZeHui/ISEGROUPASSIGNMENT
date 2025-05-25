@@ -11,7 +11,7 @@ class Arrow:
 class ArrowSystem:
 
     MAX_ARROWS = 10
-    MAX_VULNERABLE_ENTITIES = 10
+    MAX_VULNERABLE_ENTITIES = 30
     DEF_ARROW_SPEED = 10
 
     def __init__(self):
@@ -20,15 +20,16 @@ class ArrowSystem:
         self.arrows = []
         self.vulnerableEntities = []
 
-    def update(self, leftXbound, rightXbound):
+    def update(self, leftXbound, rightXbound, splatterSystem):
         if self.arrows == []: return
         
         #arrCounter = 0
         for a in self.arrows:
-
+            
             # Check collisions (naive algorithm, but still works)
             for e in self.vulnerableEntities:
-                if(a.hitbox.overlaps(e.hitbox)):
+                if(a.hitbox.overlaps(e.hitbox)
+                and e.currentActionState != ActionState.DYING):
                     
                     # Deflection logic
                     if(e.currentActionState == ActionState.BLOCKING
@@ -36,7 +37,7 @@ class ArrowSystem:
                         a.direction = -a.direction
                         print("Arrow deflected!")
                     else: # Damage logic
-                        e.hurt(a.damage)
+                        e.hurt(a.damage, splatterSystem)
                         a.direction = 0
                         print("Arrow hit!")
 

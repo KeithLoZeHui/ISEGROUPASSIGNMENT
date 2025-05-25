@@ -335,6 +335,15 @@ def renderArrows(screen, arrowSystem, collisionsShown, leftArrowSprite, rightArr
             scaledArrow = pygame.transform.scale(targetFrame, scaledSize)
             screen.blit(scaledArrow, (arrowArr[i].hitbox.x, arrowArr[i].hitbox.y))
 
+def renderSplatter(screen, splatter, splatterAnimationData):
+    targetFrame = splatterAnimationData[splatter.animation.currentFrame]
+
+    scaledSize = (targetFrame.get_width()*scaleFactor, targetFrame.get_height()*scaleFactor)
+
+    # Perform the actual rendering
+    scaledSplatter = pygame.transform.scale(targetFrame, scaledSize)
+    screen.blit(scaledSplatter, (splatter.xPos, splatter.yPos)) #(f.hitbox.x, f.hitbox.y))
+
 RENDEROBJ_RIKU = 0
 
 RENDEROBJ_MELEETIER1 = 1 
@@ -348,6 +357,11 @@ RENDEROBJ_RANGEDTIER3 = 7
 RENDEROBJ_RANGEDTIER4 = 8
 
 RENDEROBJ_ARROW = 9
+
+RENDEROBJ_FINALBOSS = 10
+
+RENDEROBJ_SPLATTER = 11
+
 
 # Objects can be fighters, arrows, particles
 def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collisionsShown, font, statusBarsShown):
@@ -392,9 +406,14 @@ def renderObjectsByPseudoZ(screen, objArr, objTypeArr, animationAtlas, collision
         elif(RENDEROBJ_ARROW==objTypeArr[i]):
             renderArrow(screen, objArr[i], collisionsShown, animationAtlas[RENDEROBJ_ARROW][1], animationAtlas[RENDEROBJ_ARROW][0])
 
+        elif(RENDEROBJ_SPLATTER==objTypeArr[i]):
+            renderSplatter(screen, objArr[i], animationAtlas[RENDEROBJ_SPLATTER])
+
         if(RENDEROBJ_ARROW!=objTypeArr[i]):
             #renderEntityCollisionBoxes(screen, objArr[i], collisionsShown)
             pass
         else:
             renderArrowCollisionBox(screen, objArr[i], collisionsShown)
+
+        
 
